@@ -10,13 +10,13 @@ const registerSchema = Joi.object({
         "any.only": "Passwords do not match",
     }),
     company_name: Joi.string().required(),
-    business_type: Joi.string().valid("DOT", "NON-DOT").required(),
+    business_type: Joi.string().valid("DOT", "NON-DOT").optional(),
     dot_number: Joi.when("business_type", {
         is: "DOT",
         then: Joi.string().required(),
-        otherwise: Joi.string().allow("", null),
+        otherwise: Joi.string().allow("", null).optional(),
     }),
-    address: Joi.string().required(),
+    address: Joi.string().optional(),
 });
 
 const loginSchema = Joi.object({
