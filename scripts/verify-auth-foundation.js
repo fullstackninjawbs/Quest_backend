@@ -60,7 +60,6 @@ async function runTests() {
         const verifyRes = await axios.post(`${API_URL}/verify-otp`, {
             email: testEmail,
             otp: rawOTP,
-            type: "signup"
         });
         console.log("OTP Verification Success:", verifyRes.data.user.email);
 
@@ -73,12 +72,19 @@ async function runTests() {
         const token = loginRes.data.token;
         console.log("Login Success. Token received:", token ? "Yes" : "No");
 
-        // 6. Test GET /me
+        // 5. Test GET /me
         console.log("\n--- Testing GET /me ---");
         const meRes = await axios.get(`${API_URL}/me`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         console.log("Identity Verified:", meRes.data.user.email, "| Role:", meRes.data.user.role);
+
+        // 6. Test Logout
+        console.log("\n--- Testing Logout ---");
+        const logoutRes = await axios.post(`${API_URL}/logout`, {}, {
+            headers: { Authorization: `Bearer ${token}` }
+        });
+        console.log("Logout Success:", logoutRes.data.message);
 
         // 7. Forgot Password
         console.log("\n--- Testing Forgot Password ---");

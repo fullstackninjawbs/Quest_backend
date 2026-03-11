@@ -17,8 +17,8 @@ exports.signup = catchAsync(async (req, res, next) => {
 // @route   POST /api/v1/auth/verify-otp
 // @access  Public
 exports.verifyOTP = catchAsync(async (req, res, next) => {
-    const { email, otp, type } = req.body;
-    const result = await authService.verifyOTP(email, otp, type);
+    const { email, otp } = req.body;
+    const result = await authService.verifyOTP(email, otp);
 
     res.status(200).json({
         success: true,
@@ -75,3 +75,12 @@ exports.getMe = catchAsync(async (req, res, next) => {
     });
 });
 
+// @desc    Logout (works for both super_admin and employer)
+// @route   POST /api/v1/auth/logout
+// @access  Private
+exports.logout = catchAsync(async (req, res, next) => {
+    res.status(200).json({
+        success: true,
+        message: "Logged out successfully.",
+    });
+});

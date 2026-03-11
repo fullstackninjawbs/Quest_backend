@@ -11,7 +11,7 @@ const emailTemplates = require("../utils/emailTemplates");
  */
 const registerUser = async (userData) => {
     const { email, password, confirmPassword, first_name, last_name } = userData;
-    
+
     // 1. Validate Password Confirmation
     if (password !== confirmPassword) {
         throw new AppError("Passwords do not match", 400);
@@ -29,6 +29,8 @@ const registerUser = async (userData) => {
     });
 
     const otp = generateOTP();
+    // Clear any existing OTPs for this email to prevent conflicts
+    await OTP.deleteMany({ email });
     await OTP.create({
         email,
         otp_code: hashOTP(otp),
@@ -52,27 +54,22 @@ const registerUser = async (userData) => {
 };
 
 /**
- * Verify OTP (Signup, Login, or Reset)
+ * Verify OTP — type is auto-detected from the OTP record
  */
-const verifyOTP = async (email, otp, type) => {
-    console.log(`[DEBUG] VerifyOTP - Email: ${email}, Type: ${type}, OTP: ${otp}`);
+const verifyOTP = async (email, otp) => {
+    // Find the latest active OTP for this email (no type required)
     const otpRecord = await OTP.findOne({
         email,
-        type,
         used: false,
         expires_at: { $gt: Date.now() },
-    });
-
-    console.log(`[DEBUG] OTP Record found: ${otpRecord ? "Yes" : "No"}`);
-    if (otpRecord) {
-        const hashedInput = hashOTP(otp);
-        console.log(`[DEBUG] Input Hash: ${hashedInput}`);
-        console.log(`[DEBUG] DB Hash: ${otpRecord.otp_code}`);
-    }
+    }).sort({ createdAt: -1 });
 
     if (!otpRecord || otpRecord.otp_code !== hashOTP(otp)) {
         throw new AppError("Invalid or expired OTP", 400);
     }
+
+    // Auto-detect type from the record
+    const type = otpRecord.type;
 
     otpRecord.used = true;
     await otpRecord.save();
@@ -152,6 +149,8 @@ const forgotPassword = async (email) => {
     }
 
     const otp = generateOTP();
+    // Clear any existing OTPs for this email to prevent conflicts
+    await OTP.deleteMany({ email });
     await OTP.create({
         email,
         otp_code: hashOTP(otp),
