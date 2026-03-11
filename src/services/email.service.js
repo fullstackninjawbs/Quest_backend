@@ -1,35 +1,51 @@
-const nodemailer = require("nodemailer");
+const emailjs = require("@emailjs/nodejs");
 
-const transporter = nodemailer.createTransport({
-    service: "Gmail",
-    auth: {
-        user: process.env.EMAIL_USER,
-        pass: process.env.EMAIL_PASS,
-    },
+// Configure EmailJS
+emailjs.init({
+    publicKey: process.env.EMAILJS_PUBLIC_KEY,
+    privateKey: process.env.EMAILJS_PRIVATE_KEY,
 });
 
 /**
  * Send an email.
- * @param {Object} options - { to, subject, text, html }
+ * @param {Object} options - { to, subject, text, html, templateParams, name }
  */
-const sendEmail = async ({ to, subject, text, html }) => {
-    try {
-        await transporter.sendMail({
-            from: `"Asc Quest" <${process.env.EMAIL_USER}>`,
-            to,
-            subject,
-            text,
-            html,
-        });
-        console.log(`Email sent to ${to}: ${subject}`);
-    } catch (error) {
-        console.error("Email sending failed:", error.message);
-        console.log("--- EMAIL CONTENT (MOCKED) ---");
-        console.log("To:", to);
-        console.log("Subject:", subject);
-        console.log("Content:", text || "HTML Content provided");
-        console.log("------------------------------");
+const sendEmail = async ({ to, subject, text, html, templateParams, name }) => {
+    const isMailerTrue = process.env.MAILER === "true";
+
+    if (isMailerTrue) {
+        // ─── Nodemailer (Terminal Mode) ──────────────────────────────────────
+        console.log("[NODEMAILER - Terminal] MAILER=true. Printing OTP to console...");
+        logFallback(to, subject, text || "HTML Content");
+    } else {
+        // ─── EmailJS Mode ─────────────────────────────────────────────────────
+        try {
+            const params = templateParams || {
+                to_name: name || "User",
+                to_email: to,
+                otp_code: text ? (text.match(/\d{6}/)?.[0] || "123456") : "123456",
+                subject: subject
+            };
+
+            await emailjs.send(
+                process.env.EMAILJS_SERVICE_ID,
+                process.env.EMAILJS_TEMPLATE_ID,
+                params
+            );
+            console.log(`[EmailJS] Template email sent to ${to}`);
+        } catch (error) {
+            console.error("[EmailJS] Sending failed:", error.message);
+            logFallback(to, subject, text || "EmailJS Params used");
+        }
     }
+};
+
+const logFallback = (to, subject, content) => {
+    console.log("--- EMAIL CONTENT (FALLBACK) ---");
+    console.log("To:", to);
+    console.log("Subject:", subject);
+    console.log("Content:", content);
+    console.log("------------------------------");
 };
 
 module.exports = { sendEmail };

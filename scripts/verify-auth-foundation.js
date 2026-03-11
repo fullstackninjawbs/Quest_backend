@@ -9,7 +9,7 @@ dotenv.config({ path: path.join(__dirname, "../.env") });
 const OTP = require("../src/models/otp.model");
 const User = require("../src/models/user.model");
 
-const API_URL = "http://localhost:5000/api/v1/auth";
+const API_URL = "http://localhost:5001/api/v1/auth";
 
 async function runTests() {
     try {

@@ -35,7 +35,9 @@ const registerUser = async (userData) => {
 
     await sendEmail({
         to: email,
+        name: userData.name,
         subject: "Welcome to Asc Quest - Verify your Email",
+        text: `Your verification OTP is: ${otp}`,
         html: emailTemplates.signupVerification(userData.name, otp),
     });
 
@@ -144,7 +146,9 @@ const forgotPassword = async (email) => {
 
     await sendEmail({
         to: email,
+        name: user.name,
         subject: "Password Reset OTP - Asc Quest",
+        text: `Your password reset OTP is: ${otp}`,
         html: emailTemplates.passwordResetOTP(otp),
     });
 
