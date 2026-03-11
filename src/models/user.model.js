@@ -15,23 +15,44 @@ const userSchema = new mongoose.Schema(
             lowercase: true,
             trim: true,
         },
+        phone: {
+            type: String,
+            required: [true, "Phone number is required"],
+            trim: true,
+        },
         password: {
             type: String,
             required: [true, "Password is required"],
-            minlength: 6,
+            minlength: 8,
             select: false,
         },
         role: {
             type: String,
-            enum: ["user", "admin"],
-            default: "user",
+            enum: ["super_admin", "employer"],
+            required: [true, "Role is required"],
         },
-        isVerified: {
+        status: {
+            type: String,
+            enum: ["pending", "active", "suspended"],
+            default: "pending",
+        },
+        isEmailVerified: {
             type: Boolean,
             default: false,
         },
-        otp: String,
-        otpExpiry: Date,
+        // Employer specific fields
+        company_name: String,
+        business_type: {
+            type: String,
+            enum: ["DOT", "NON-DOT"],
+        },
+        dot_number: {
+            type: String,
+            required: function () {
+                return this.business_type === "DOT";
+            },
+        },
+        address: String,
     },
     { timestamps: true }
 );

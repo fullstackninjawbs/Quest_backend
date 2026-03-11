@@ -1,64 +1,100 @@
 const User = require("../models/user.model");
-const {
-    generateToken,
-    hashOTP,
-    generateOTP,
-} = require("../utils/token.util");
+const OTP = require("../models/otp.model");
+const { generateToken, generateOTP, hashOTP } = require("../utils/token.util");
 const AppError = require("../utils/AppError");
 const { sendEmail } = require("./email.service");
+const emailTemplates = require("../utils/emailTemplates");
+
 
 /**
- * Register a new user and send verification email.
+ * Register a new Employer
  */
-const registerUser = async (name, email, password) => {
+const registerUser = async (userData) => {
+    const { email, password } = userData;
     const existingUser = await User.findOne({ email });
     if (existingUser) {
         throw new AppError("Email already in use", 400);
     }
 
-    const otp = generateOTP();
-    const otpExpiry = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
-
-    await User.create({
-        name,
-        email,
-        password,
-        otp: hashOTP(otp),
-        otpExpiry,
+    const user = await User.create({
+        ...userData,
+        role: "employer",
+        status: "pending",
     });
+
+    const otp = generateOTP();
+    await OTP.create({
+        email,
+        otp_code: hashOTP(otp),
+        expires_at: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+        type: "signup",
+    });
+
+    console.log(`\n>>> VERIFICATION OTP FOR ${email}: ${otp} <<<\n`);
+
 
     await sendEmail({
         to: email,
-        subject: "Email Verification OTP",
-        text: `Your OTP is: ${otp}. It expires in 10 minutes.`,
+        subject: "Welcome to Asc Quest - Verify your Email",
+        html: emailTemplates.signupVerification(userData.name, otp),
     });
 
-    return { message: "User registered. Please verify your email." };
+    return { message: "Employer registered. Please verify your email." };
 };
 
 /**
- * Verify user's OTP and update verification status.
+ * Verify OTP (Signup, Login, or Reset)
  */
-const verifyUserOTP = async (email, otp) => {
+const verifyOTP = async (email, otp, type) => {
+    const otpRecord = await OTP.findOne({
+        email,
+        type,
+        used: false,
+        expires_at: { $gt: Date.now() },
+    });
+
+    if (!otpRecord || otpRecord.otp_code !== hashOTP(otp)) {
+        throw new AppError("Invalid or expired OTP", 400);
+    }
+
+    otpRecord.used = true;
+    await otpRecord.save();
+
     const user = await User.findOne({ email });
-    if (!user || !user.otp || user.otpExpiry < Date.now()) {
-        throw new AppError("OTP expired or invalid", 400);
+    if (!user) throw new AppError("User not found", 404);
+
+    if (type === "signup") {
+        user.isEmailVerified = true;
+        await user.save();
+
+        return {
+            message: "Email verified successfully. Please log in.",
+            user: {
+                id: user._id,
+                name: user.name,
+                email: user.email,
+                role: user.role,
+                status: user.status,
+            },
+        };
     }
 
-    if (user.otp !== hashOTP(otp)) {
-        throw new AppError("Incorrect OTP", 400);
-    }
+    const token = generateToken(user._id);
 
-    user.isVerified = true;
-    user.otp = undefined;
-    user.otpExpiry = undefined;
-    await user.save({ validateBeforeSave: false });
-
-    return { message: "Email verified. Please log in." };
+    return {
+        token,
+        user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+        },
+    };
 };
 
 /**
- * Validate user credentials and generate JWT token.
+ * Login logic
  */
 const loginUser = async (email, password) => {
     const user = await User.findOne({ email }).select("+password");
@@ -66,13 +102,83 @@ const loginUser = async (email, password) => {
         throw new AppError("Invalid email or password", 401);
     }
 
-    if (!user.isVerified) {
+    if (user.role === "employer" && !user.isEmailVerified) {
         throw new AppError("Please verify your email first", 403);
     }
+
+    // 4. Generate Token
+    const token = generateToken(user._id);
+
+    return {
+        token,
+        user: {
+            id: user._id,
+            name: user.name,
+            email: user.email,
+            role: user.role,
+            status: user.status,
+        },
+    };
+};
+
+/**
+ * Forgot Password
+ */
+const forgotPassword = async (email) => {
+    const user = await User.findOne({ email });
+    if (!user) {
+        // Don't leak user existence in production, but here we'll be helpful
+        throw new AppError("User with this email does not exist", 404);
+    }
+
+    const otp = generateOTP();
+    await OTP.create({
+        email,
+        otp_code: hashOTP(otp),
+        expires_at: new Date(Date.now() + 10 * 60 * 1000),
+        type: "reset",
+    });
+
+    console.log(`\n>>> RESET OTP FOR ${email}: ${otp} <<<\n`);
+
+
+    await sendEmail({
+        to: email,
+        subject: "Password Reset OTP - Asc Quest",
+        html: emailTemplates.passwordResetOTP(otp),
+    });
+
+    return { message: "Password reset OTP sent." };
+};
+
+/**
+ * Reset Password
+ */
+const resetPassword = async (email, otp, newPassword) => {
+    const otpRecord = await OTP.findOne({
+        email,
+        type: "reset",
+        used: false,
+        expires_at: { $gt: Date.now() },
+    });
+
+    if (!otpRecord || otpRecord.otp_code !== hashOTP(otp)) {
+        throw new AppError("Invalid or expired OTP", 400);
+    }
+
+    const user = await User.findOne({ email });
+    if (!user) throw new AppError("User not found", 404);
+
+    user.password = newPassword;
+    await user.save();
+
+    otpRecord.used = true;
+    await otpRecord.save();
 
     const token = generateToken(user._id);
 
     return {
+        message: "Password reset successfully.",
         token,
         user: {
             id: user._id,
@@ -85,6 +191,9 @@ const loginUser = async (email, password) => {
 
 module.exports = {
     registerUser,
-    verifyUserOTP,
+    verifyOTP,
     loginUser,
+    forgotPassword,
+    resetPassword,
 };
+

@@ -1,12 +1,11 @@
 const authService = require("../services/auth.service");
 const catchAsync = require("../utils/catchAsync");
 
-// @desc    Register a new user
-// @route   POST /api/v1/auth/register
+// @desc    Register a new employer
+// @route   POST /api/v1/auth/signup
 // @access  Public
-exports.register = catchAsync(async (req, res, next) => {
-    const { name, email, password } = req.body;
-    const result = await authService.registerUser(name, email, password);
+exports.signup = catchAsync(async (req, res, next) => {
+    const result = await authService.registerUser(req.body);
 
     res.status(201).json({
         success: true,
@@ -18,8 +17,8 @@ exports.register = catchAsync(async (req, res, next) => {
 // @route   POST /api/v1/auth/verify-otp
 // @access  Public
 exports.verifyOTP = catchAsync(async (req, res, next) => {
-    const { email, otp } = req.body;
-    const result = await authService.verifyUserOTP(email, otp);
+    const { email, otp, type } = req.body;
+    const result = await authService.verifyOTP(email, otp, type);
 
     res.status(200).json({
         success: true,
@@ -39,3 +38,40 @@ exports.login = catchAsync(async (req, res, next) => {
         ...result,
     });
 });
+
+// @desc    Forgot Password
+// @route   POST /api/v1/auth/forgot-password
+// @access  Public
+exports.forgotPassword = catchAsync(async (req, res, next) => {
+    const { email } = req.body;
+    const result = await authService.forgotPassword(email);
+
+    res.status(200).json({
+        success: true,
+        ...result,
+    });
+});
+
+// @desc    Reset Password
+// @route   POST /api/v1/auth/reset-password
+// @access  Public
+exports.resetPassword = catchAsync(async (req, res, next) => {
+    const { email, otp, password } = req.body;
+    const result = await authService.resetPassword(email, otp, password);
+
+    res.status(200).json({
+        success: true,
+        ...result,
+    });
+});
+
+// @desc    Get current user info
+// @route   GET /api/v1/auth/me
+// @access  Private
+exports.getMe = catchAsync(async (req, res, next) => {
+    res.status(200).json({
+        success: true,
+        user: req.user,
+    });
+});
+
