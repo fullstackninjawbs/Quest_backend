@@ -33,12 +33,25 @@ async function runTests() {
             address: "123 Test St",
         });
         console.log("Signup Success:", signupRes.data.message);
+        console.log("Signup OTP Expires At:", signupRes.data.otpExpiresAt);
 
-        // 2. Fetch Signup OTP from DB
+        // 2. Test OTP Status
+        console.log("\n--- Testing OTP Status ---");
+        const statusRes = await axios.post(`${API_URL}/otp-status`, { email: testEmail });
+        console.log("OTP Status Has Active OTP:", statusRes.data.hasActiveOtp);
+        console.log("OTP Status Expires At:", statusRes.data.otpExpiresAt);
+
+        // 3. Test Resend OTP
+        console.log("\n--- Testing Resend OTP ---");
+        const resendRes = await axios.post(`${API_URL}/resend-otp`, { email: testEmail });
+        console.log("Resend OTP Success:", resendRes.data.message);
+        console.log("Resend OTP Expires At:", resendRes.data.otpExpiresAt);
+
+        // 4. Fetch the NEW Signup OTP from DB
         const signupOTP = await OTP.findOne({ email: testEmail, type: "signup" }).sort({ createdAt: -1 });
-        console.log("Signup OTP found in DB:", signupOTP ? "Yes" : "No");
+        console.log("New Signup OTP found in DB:", signupOTP ? "Yes" : "No");
 
-        // 3. Verify Signup OTP (Real world would hash input, but our service hashes and compares)
+        // 5. Verify Signup OTP (Real world would hash input, but our service hashes and compares)
         // Wait, our service uses hashOTP(otp) to compare. I need to know the raw OTP.
         // I should have logged it in the service for testing or made it deterministic for tests.
         // Actually, since I'm the one who wrote the service, I know it generates a random 6-digit number.
@@ -48,7 +61,7 @@ async function runTests() {
         const rawOTP = "123456";
         const crypto = require("crypto");
         const hashOTP = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
-        
+
         const updateResult = await OTP.findOneAndUpdate(
             { email: testEmail, type: "signup" },
             { otp_code: hashOTP(rawOTP), expires_at: new Date(Date.now() + 500000) },
@@ -63,7 +76,7 @@ async function runTests() {
         });
         console.log("OTP Verification Success:", verifyRes.data.user.email);
 
-        // 4. Login (Direct Token)
+        // 6. Login (Direct Token)
         console.log("\n--- Testing Login ---");
         const loginRes = await axios.post(`${API_URL}/login`, {
             email: testEmail,
@@ -72,26 +85,33 @@ async function runTests() {
         const token = loginRes.data.token;
         console.log("Login Success. Token received:", token ? "Yes" : "No");
 
-        // 5. Test GET /me
+        // 7. Test GET /me
         console.log("\n--- Testing GET /me ---");
         const meRes = await axios.get(`${API_URL}/me`, {
             headers: { Authorization: `Bearer ${token}` }
         });
         console.log("Identity Verified:", meRes.data.user.email, "| Role:", meRes.data.user.role);
 
-        // 6. Test Logout
+        // 8. Test Logout
         console.log("\n--- Testing Logout ---");
         const logoutRes = await axios.post(`${API_URL}/logout`, {}, {
             headers: { Authorization: `Bearer ${token}` }
         });
         console.log("Logout Success:", logoutRes.data.message);
 
-        // 7. Forgot Password
+        // 9. Forgot Password
         console.log("\n--- Testing Forgot Password ---");
         const forgotRes = await axios.post(`${API_URL}/forgot-password`, { email: testEmail });
         console.log("Forgot Password Response:", forgotRes.data.message);
+        console.log("Forgot Password Expires At:", forgotRes.data.otpExpiresAt);
 
-        // 8. Reset Password
+        // 10. Test Another Resend OTP (for reset flow)
+        console.log("\n--- Testing Resend OTP (Reset Flow) ---");
+        const resendResetRes = await axios.post(`${API_URL}/resend-otp`, { email: testEmail });
+        console.log("Resend Reset OTP Success:", resendResetRes.data.message);
+        console.log("Resend Reset OTP Expires At:", resendResetRes.data.otpExpiresAt);
+
+        // 11. Reset Password
         await OTP.findOneAndUpdate(
             { email: testEmail, type: "reset" },
             { otp_code: hashOTP(rawOTP), expires_at: new Date(Date.now() + 500000) }

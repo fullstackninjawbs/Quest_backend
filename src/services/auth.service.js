@@ -29,12 +29,14 @@ const registerUser = async (userData) => {
     });
 
     const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+
     // Clear any existing OTPs for this email to prevent conflicts
     await OTP.deleteMany({ email });
     await OTP.create({
         email,
         otp_code: hashOTP(otp),
-        expires_at: new Date(Date.now() + 10 * 60 * 1000), // 10 minutes
+        expires_at: expiresAt,
         type: "signup",
     });
 
@@ -50,7 +52,10 @@ const registerUser = async (userData) => {
         html: emailTemplates.signupVerification(fullName, otp),
     });
 
-    return { message: "Employer registered. Please verify your email." };
+    return { 
+        message: "Employer registered. Please verify your email.",
+        otpExpiresAt: expiresAt.toISOString(),
+    };
 };
 
 /**
@@ -149,12 +154,14 @@ const forgotPassword = async (email) => {
     }
 
     const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+
     // Clear any existing OTPs for this email to prevent conflicts
     await OTP.deleteMany({ email });
     await OTP.create({
         email,
         otp_code: hashOTP(otp),
-        expires_at: new Date(Date.now() + 10 * 60 * 1000),
+        expires_at: expiresAt,
         type: "reset",
     });
 
@@ -170,7 +177,10 @@ const forgotPassword = async (email) => {
         html: emailTemplates.passwordResetOTP(otp),
     });
 
-    return { message: "Password reset OTP sent." };
+    return { 
+        message: "Password reset OTP sent.",
+        otpExpiresAt: expiresAt.toISOString(),
+    };
 };
 
 /**
@@ -212,11 +222,89 @@ const resetPassword = async (email, otp, newPassword) => {
     };
 };
 
+/**
+ * Resend OTP
+ */
+const resendOTP = async (email) => {
+    const user = await User.findOne({ email });
+    if (!user) {
+        throw new AppError("User not found", 404);
+    }
+
+    const type = user.isEmailVerified ? "reset" : "signup";
+    const otp = generateOTP();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+
+    // Clear old OTPs
+    await OTP.deleteMany({ email });
+    await OTP.create({
+        email,
+        otp_code: hashOTP(otp),
+        expires_at: expiresAt,
+        type,
+    });
+
+    console.log(`\n>>> RESEND OTP FOR ${email} (${type}): ${otp} <<<\n`);
+
+    const fullName = `${user.first_name} ${user.last_name}`;
+    
+    // Send appropriate email
+    if (type === "signup") {
+        await sendEmail({
+            to: email,
+            name: fullName,
+            subject: "Welcome to Asc Quest - Verify your Email",
+            text: `Your verification OTP is: ${otp}`,
+            html: emailTemplates.signupVerification(fullName, otp),
+        });
+    } else {
+        await sendEmail({
+            to: email,
+            name: fullName,
+            subject: "Password Reset OTP - Asc Quest",
+            text: `Your password reset OTP is: ${otp}`,
+            html: emailTemplates.passwordResetOTP(otp),
+        });
+    }
+
+    return {
+        message: "OTP resent successfully.",
+        otpExpiresAt: expiresAt.toISOString(),
+    };
+};
+
+/**
+ * OTP Status (for frontend timer resumption)
+ */
+const otpStatus = async (email) => {
+    const user = await User.findOne({ email });
+    if (!user) {
+        throw new AppError("User not found", 404);
+    }
+
+    const activeOtp = await OTP.findOne({
+        email,
+        used: false,
+        expires_at: { $gt: Date.now() },
+    }).sort({ createdAt: -1 });
+
+    if (!activeOtp) {
+        return { hasActiveOtp: false };
+    }
+
+    return {
+        hasActiveOtp: true,
+        otpExpiresAt: activeOtp.expires_at.toISOString(),
+    };
+};
+
 module.exports = {
     registerUser,
     verifyOTP,
     loginUser,
     forgotPassword,
     resetPassword,
+    resendOTP,
+    otpStatus,
 };
 

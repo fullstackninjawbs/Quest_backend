@@ -84,3 +84,29 @@ exports.logout = catchAsync(async (req, res, next) => {
         message: "Logged out successfully.",
     });
 });
+
+// @desc    Resend OTP
+// @route   POST /api/v1/auth/resend-otp
+// @access  Public
+exports.resendOTP = catchAsync(async (req, res, next) => {
+    const { email } = req.body;
+    const result = await authService.resendOTP(email);
+
+    res.status(200).json({
+        success: true,
+        ...result,
+    });
+});
+
+// @desc    Get OTP Status (for timer resumption)
+// @route   POST /api/v1/auth/otp-status
+// @access  Public
+exports.otpStatus = catchAsync(async (req, res, next) => {
+    const { email } = req.body;
+    const result = await authService.otpStatus(email);
+
+    res.status(200).json({
+        success: true,
+        ...result,
+    });
+});

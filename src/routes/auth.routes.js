@@ -6,6 +6,8 @@ const {
     login,
     forgotPassword,
     resetPassword,
+    resendOTP,
+    otpStatus,
     getMe,
     logout,
 } = require("../controllers/auth.controller");
@@ -38,6 +40,16 @@ router.post(
     "/reset-password",
     validateBody(resetPasswordSchema),
     resetPassword
+);
+router.post(
+    "/resend-otp",
+    validateBody(forgotPasswordSchema), // same payload {email}
+    resendOTP
+);
+router.post(
+    "/otp-status",
+    validateBody(forgotPasswordSchema), // same payload {email}
+    otpStatus
 );
 router.get("/me", protect, getMe);
 router.post("/logout", protect, logout);
