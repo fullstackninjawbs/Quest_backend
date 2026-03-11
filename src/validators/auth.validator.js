@@ -1,10 +1,14 @@
 const Joi = require("joi");
 
 const registerSchema = Joi.object({
-    name: Joi.string().min(2).max(50).required(),
+    first_name: Joi.string().min(2).max(50).required(),
+    last_name: Joi.string().min(2).max(50).required(),
     email: Joi.string().email().required(),
     phone: Joi.string().required(),
     password: Joi.string().min(8).required(),
+    confirmPassword: Joi.string().valid(Joi.ref("password")).required().messages({
+        "any.only": "Passwords do not match",
+    }),
     company_name: Joi.string().required(),
     business_type: Joi.string().valid("DOT", "NON-DOT").required(),
     dot_number: Joi.when("business_type", {

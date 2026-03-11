@@ -10,7 +10,13 @@ const emailTemplates = require("../utils/emailTemplates");
  * Register a new Employer
  */
 const registerUser = async (userData) => {
-    const { email, password } = userData;
+    const { email, password, confirmPassword, first_name, last_name } = userData;
+    
+    // 1. Validate Password Confirmation
+    if (password !== confirmPassword) {
+        throw new AppError("Passwords do not match", 400);
+    }
+
     const existingUser = await User.findOne({ email });
     if (existingUser) {
         throw new AppError("Email already in use", 400);
@@ -33,12 +39,13 @@ const registerUser = async (userData) => {
     console.log(`\n>>> VERIFICATION OTP FOR ${email}: ${otp} <<<\n`);
 
 
+    const fullName = `${first_name} ${last_name}`;
     await sendEmail({
         to: email,
-        name: userData.name,
+        name: fullName,
         subject: "Welcome to Asc Quest - Verify your Email",
         text: `Your verification OTP is: ${otp}`,
-        html: emailTemplates.signupVerification(userData.name, otp),
+        html: emailTemplates.signupVerification(fullName, otp),
     });
 
     return { message: "Employer registered. Please verify your email." };
@@ -48,12 +55,20 @@ const registerUser = async (userData) => {
  * Verify OTP (Signup, Login, or Reset)
  */
 const verifyOTP = async (email, otp, type) => {
+    console.log(`[DEBUG] VerifyOTP - Email: ${email}, Type: ${type}, OTP: ${otp}`);
     const otpRecord = await OTP.findOne({
         email,
         type,
         used: false,
         expires_at: { $gt: Date.now() },
     });
+
+    console.log(`[DEBUG] OTP Record found: ${otpRecord ? "Yes" : "No"}`);
+    if (otpRecord) {
+        const hashedInput = hashOTP(otp);
+        console.log(`[DEBUG] Input Hash: ${hashedInput}`);
+        console.log(`[DEBUG] DB Hash: ${otpRecord.otp_code}`);
+    }
 
     if (!otpRecord || otpRecord.otp_code !== hashOTP(otp)) {
         throw new AppError("Invalid or expired OTP", 400);
@@ -73,7 +88,8 @@ const verifyOTP = async (email, otp, type) => {
             message: "Email verified successfully. Please log in.",
             user: {
                 id: user._id,
-                name: user.name,
+                first_name: user.first_name,
+                last_name: user.last_name,
                 email: user.email,
                 role: user.role,
                 status: user.status,
@@ -87,7 +103,8 @@ const verifyOTP = async (email, otp, type) => {
         token,
         user: {
             id: user._id,
-            name: user.name,
+            first_name: user.first_name,
+            last_name: user.last_name,
             email: user.email,
             role: user.role,
             status: user.status,
@@ -115,7 +132,8 @@ const loginUser = async (email, password) => {
         token,
         user: {
             id: user._id,
-            name: user.name,
+            first_name: user.first_name,
+            last_name: user.last_name,
             email: user.email,
             role: user.role,
             status: user.status,
@@ -144,9 +162,10 @@ const forgotPassword = async (email) => {
     console.log(`\n>>> RESET OTP FOR ${email}: ${otp} <<<\n`);
 
 
+    const resetFullName = `${user.first_name} ${user.last_name}`;
     await sendEmail({
         to: email,
-        name: user.name,
+        name: resetFullName,
         subject: "Password Reset OTP - Asc Quest",
         text: `Your password reset OTP is: ${otp}`,
         html: emailTemplates.passwordResetOTP(otp),
@@ -186,7 +205,8 @@ const resetPassword = async (email, otp, newPassword) => {
         token,
         user: {
             id: user._id,
-            name: user.name,
+            first_name: user.first_name,
+            last_name: user.last_name,
             email: user.email,
             role: user.role,
         },

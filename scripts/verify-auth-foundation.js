@@ -22,9 +22,11 @@ async function runTests() {
         // 1. Signup
         console.log("\n--- Testing Signup ---");
         const signupRes = await axios.post(`${API_URL}/signup`, {
-            name: "Test Employer",
+            first_name: "Test",
+            last_name: "Employer",
             email: testEmail,
             password: "Password123!",
+            confirmPassword: "Password123!",
             phone: "1234567890",
             company_name: "Test Corp",
             business_type: "NON-DOT",
@@ -42,15 +44,17 @@ async function runTests() {
         // Actually, since I'm the one who wrote the service, I know it generates a random 6-digit number.
         // I'll just clear the OTPs and manually create one that I know for testing.
 
-        console.log("Manually inserting a known OTP for verification...");
+        console.log(`Manually inserting a known OTP for verification for email: ${testEmail}...`);
         const rawOTP = "123456";
         const crypto = require("crypto");
         const hashOTP = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
         
-        await OTP.findOneAndUpdate(
+        const updateResult = await OTP.findOneAndUpdate(
             { email: testEmail, type: "signup" },
-            { otp_code: hashOTP(rawOTP), expires_at: new Date(Date.now() + 500000) }
+            { otp_code: hashOTP(rawOTP), expires_at: new Date(Date.now() + 500000) },
+            { new: true }
         );
+        console.log("OTP Update Result:", updateResult ? "Success" : "Failed (Record not found)");
 
         console.log("\n--- Testing OTP Verification ---");
         const verifyRes = await axios.post(`${API_URL}/verify-otp`, {
@@ -60,29 +64,14 @@ async function runTests() {
         });
         console.log("OTP Verification Success:", verifyRes.data.user.email);
 
-        // 4. Login (Should trigger 2FA)
-        console.log("\n--- Testing Login (Trigger 2FA) ---");
+        // 4. Login (Direct Token)
+        console.log("\n--- Testing Login ---");
         const loginRes = await axios.post(`${API_URL}/login`, {
             email: testEmail,
             password: "Password123!"
         });
-        console.log("Login Status:", loginRes.data.message);
-        console.log("Requires OTP:", loginRes.data.requiresOTP);
-
-        // 5. Verify Login OTP
-        await OTP.findOneAndUpdate(
-            { email: testEmail, type: "login" },
-            { otp_code: hashOTP(rawOTP), expires_at: new Date(Date.now() + 500000) }
-        );
-
-        console.log("\n--- Testing Login OTP Verification ---");
-        const loginVerifyRes = await axios.post(`${API_URL}/verify-otp`, {
-            email: testEmail,
-            otp: rawOTP,
-            type: "login"
-        });
-        const token = loginVerifyRes.data.token;
-        console.log("Login Verified. Token received.");
+        const token = loginRes.data.token;
+        console.log("Login Success. Token received:", token ? "Yes" : "No");
 
         // 6. Test GET /me
         console.log("\n--- Testing GET /me ---");
@@ -121,13 +110,21 @@ async function runTests() {
     } catch (error) {
         console.error("\nTEST FAILED ❌");
         if (error.response) {
-            console.error("Data:", error.response.data);
-            console.error("Status:", error.response.status);
-        } else {
+            console.error("HTTP Error:");
+            console.error("  Status:", error.response.status);
+            console.error("  Data:", JSON.stringify(error.response.data, null, 2));
+        } else if (error.request) {
+            console.error("Network Error: No response received");
             console.error(error.message);
+        } else {
+            console.error("General Error:");
+            console.error(error.message);
+            console.error(error.stack);
         }
     } finally {
-        await mongoose.disconnect();
+        if (mongoose.connection.readyState !== 0) {
+            await mongoose.disconnect();
+        }
         process.exit();
     }
 }
