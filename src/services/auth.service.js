@@ -74,11 +74,7 @@ const registerUser = async (userData) => {
     });
 
     return {
-<<<<<<< HEAD
         message: `${role === "super_admin" ? "Super Admin" : "Employer"} registered. Please verify your email.`,
-=======
-        message: "Employer registered. Please verify your email.",
->>>>>>> 2fd389f1a793bab22ab6ebe5bab1db85cc9a2105
         otpExpiresAt: expiresAt.toISOString(),
     };
 };
@@ -147,7 +143,6 @@ const loginUser = async (email, password) => {
         throw new AppError("Invalid email or password", 401);
     }
 
-<<<<<<< HEAD
     const { user, role } = result;
     
     // We need the password field which is selected: false
@@ -159,9 +154,6 @@ const loginUser = async (email, password) => {
     }
 
     if (role === "employer" && !userWithPass.isEmailVerified) {
-=======
-    if (user.role === "employer" || !user.isEmailVerified) {
->>>>>>> 2fd389f1a793bab22ab6ebe5bab1db85cc9a2105
         throw new AppError("Please verify your email first", 403);
     }
 
@@ -288,10 +280,7 @@ const resendOTP = async (email) => {
 
     const fullName = `${user.first_name} ${user.last_name}`;
 
-<<<<<<< HEAD
-=======
     // Send appropriate email
->>>>>>> 2fd389f1a793bab22ab6ebe5bab1db85cc9a2105
     if (type === "signup") {
         await sendEmail({
             to: email,
