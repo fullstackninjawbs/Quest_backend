@@ -53,7 +53,7 @@ const registerUser = async (userData) => {
         html: emailTemplates.signupVerification(fullName, otp),
     });
 
-    return { 
+    return {
         message: "Employer registered. Please verify your email.",
         otpExpiresAt: expiresAt.toISOString(),
     };
@@ -124,7 +124,7 @@ const loginUser = async (email, password) => {
         throw new AppError("Invalid email or password", 401);
     }
 
-    if (user.role === "employer" && !user.isEmailVerified) {
+    if (user.role === "employer" || !user.isEmailVerified) {
         throw new AppError("Please verify your email first", 403);
     }
 
@@ -179,7 +179,7 @@ const forgotPassword = async (email) => {
         html: emailTemplates.passwordResetOTP(otp),
     });
 
-    return { 
+    return {
         message: "Password reset OTP sent.",
         otpExpiresAt: expiresAt.toISOString(),
     };
@@ -249,7 +249,7 @@ const resendOTP = async (email) => {
     console.log(`\n>>> RESEND OTP FOR ${email} (${type}): ${otp} <<<\n`);
 
     const fullName = `${user.first_name} ${user.last_name}`;
-    
+
     // Send appropriate email
     if (type === "signup") {
         await sendEmail({
