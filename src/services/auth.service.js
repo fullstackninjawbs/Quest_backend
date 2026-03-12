@@ -198,7 +198,7 @@ const resetPassword = async (email, otp, newPassword) => {
         throw new AppError("Invalid or expired OTP", 400);
     }
 
-    const user = await User.findOne({ email });
+    const user = await User.findOne({ email }).select("+password");
     if (!user) throw new AppError("User not found", 404);
 
     user.password = newPassword;
