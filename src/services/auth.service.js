@@ -1,37 +1,58 @@
-const User = require("../models/user.model");
-const OTP = require("../models/otp.model");
+const SuperAdmin = require("../modules/superAdmin/models/superAdmin.model");
+const Employer = require("../modules/employer/models/employer.model");
+const OTP = require("../shared/models/otp.model");
 const { generateToken, generateOTP, hashOTP } = require("../utils/token.util");
 const AppError = require("../utils/AppError");
 const { sendEmail } = require("./email.service");
 const emailTemplates = require("../utils/emailTemplates");
 
+/**
+ * Helper to get the correct model based on role
+ */
+const getModelByRole = (role) => {
+    if (role === "super_admin") return SuperAdmin;
+    if (role === "employer") return Employer;
+    throw new AppError("Invalid role specified", 400);
+};
 
 /**
- * Register a new Employer
+ * Helper to find a user in any collection by email
+ */
+const findUserAnywhere = async (email) => {
+    const admin = await SuperAdmin.findOne({ email });
+    if (admin) return { user: admin, role: "super_admin" };
+    
+    const employer = await Employer.findOne({ email });
+    if (employer) return { user: employer, role: "employer" };
+    
+    return null;
+};
+
+/**
+ * Register a new User (Employer or Super Admin)
  */
 const registerUser = async (userData) => {
-    const { email, password, confirmPassword, first_name, last_name } = userData;
+    const { email, password, confirmPassword, first_name, last_name, role } = userData;
 
-    // 1. Validate Password Confirmation
     if (password !== confirmPassword) {
         throw new AppError("Passwords do not match", 400);
     }
 
-    const existingUser = await User.findOne({ email });
-    if (existingUser) {
+    // Check if email exists in ANY collection
+    const existing = await findUserAnywhere(email);
+    if (existing) {
         throw new AppError("Email already in use", 400);
     }
 
-    const user = await User.create({
+    const Model = getModelByRole(role);
+    const user = await Model.create({
         ...userData,
-        role: "employer",
-        status: "pending",
+        status: role === "super_admin" ? "active" : "pending",
     });
 
     const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes from now
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
 
-    // Clear any existing OTPs for this email to prevent conflicts
     await OTP.deleteMany({ email });
     await OTP.create({
         email,
@@ -41,7 +62,6 @@ const registerUser = async (userData) => {
     });
 
     console.log(`\n>>> VERIFICATION OTP FOR ${email}: ${otp} <<<\n`);
-
 
     const fullName = `${first_name} ${last_name}`;
     await sendEmail({
@@ -53,17 +73,16 @@ const registerUser = async (userData) => {
         html: emailTemplates.signupVerification(fullName, otp),
     });
 
-    return { 
-        message: "Employer registered. Please verify your email.",
+    return {
+        message: `${role === "super_admin" ? "Super Admin" : "Employer"} registered. Please verify your email.`,
         otpExpiresAt: expiresAt.toISOString(),
     };
 };
 
 /**
- * Verify OTP — type is auto-detected from the OTP record
+ * Verify OTP
  */
 const verifyOTP = async (email, otp) => {
-    // Find the latest active OTP for this email (no type required)
     const otpRecord = await OTP.findOne({
         email,
         used: false,
@@ -74,14 +93,14 @@ const verifyOTP = async (email, otp) => {
         throw new AppError("Invalid or expired OTP", 400);
     }
 
-    // Auto-detect type from the record
     const type = otpRecord.type;
+    const result = await findUserAnywhere(email);
+    if (!result) throw new AppError("User not found", 404);
+    
+    const { user } = result;
 
     otpRecord.used = true;
     await otpRecord.save();
-
-    const user = await User.findOne({ email });
-    if (!user) throw new AppError("User not found", 404);
 
     if (type === "signup") {
         user.isEmailVerified = true;
@@ -119,27 +138,36 @@ const verifyOTP = async (email, otp) => {
  * Login logic
  */
 const loginUser = async (email, password) => {
-    const user = await User.findOne({ email }).select("+password");
-    if (!user || !(await user.comparePassword(password))) {
+    const result = await findUserAnywhere(email);
+    if (!result) {
         throw new AppError("Invalid email or password", 401);
     }
 
-    if (user.role === "employer" && !user.isEmailVerified) {
+    const { user, role } = result;
+    
+    // We need the password field which is selected: false
+    const Model = getModelByRole(role);
+    const userWithPass = await Model.findById(user._id).select("+password");
+
+    if (!userWithPass || !(await userWithPass.comparePassword(password))) {
+        throw new AppError("Invalid email or password", 401);
+    }
+
+    if (role === "employer" && !userWithPass.isEmailVerified) {
         throw new AppError("Please verify your email first", 403);
     }
 
-    // 4. Generate Token
-    const token = generateToken(user._id);
+    const token = generateToken(userWithPass._id);
 
     return {
         token,
         user: {
-            id: user._id,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            email: user.email,
-            role: user.role,
-            status: user.status,
+            id: userWithPass._id,
+            first_name: userWithPass.first_name,
+            last_name: userWithPass.last_name,
+            email: userWithPass.email,
+            role: userWithPass.role,
+            status: userWithPass.status,
         },
     };
 };
@@ -148,16 +176,15 @@ const loginUser = async (email, password) => {
  * Forgot Password
  */
 const forgotPassword = async (email) => {
-    const user = await User.findOne({ email });
-    if (!user) {
-        // Don't leak user existence in production, but here we'll be helpful
+    const result = await findUserAnywhere(email);
+    if (!result) {
         throw new AppError("User with this email does not exist", 404);
     }
 
+    const { user } = result;
     const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes from now
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
 
-    // Clear any existing OTPs for this email to prevent conflicts
     await OTP.deleteMany({ email });
     await OTP.create({
         email,
@@ -167,7 +194,6 @@ const forgotPassword = async (email) => {
     });
 
     console.log(`\n>>> RESET OTP FOR ${email}: ${otp} <<<\n`);
-
 
     const resetFullName = `${user.first_name} ${user.last_name}`;
     await sendEmail({
@@ -179,7 +205,7 @@ const forgotPassword = async (email) => {
         html: emailTemplates.passwordResetOTP(otp),
     });
 
-    return { 
+    return {
         message: "Password reset OTP sent.",
         otpExpiresAt: expiresAt.toISOString(),
     };
@@ -200,26 +226,30 @@ const resetPassword = async (email, otp, newPassword) => {
         throw new AppError("Invalid or expired OTP", 400);
     }
 
-    const user = await User.findOne({ email }).select("+password");
-    if (!user) throw new AppError("User not found", 404);
+    const result = await findUserAnywhere(email);
+    if (!result) throw new AppError("User not found", 404);
+    
+    const { user, role } = result;
+    const Model = getModelByRole(role);
+    const userWithPass = await Model.findById(user._id).select("+password");
 
-    user.password = newPassword;
-    await user.save();
+    userWithPass.password = newPassword;
+    await userWithPass.save();
 
     otpRecord.used = true;
     await otpRecord.save();
 
-    const token = generateToken(user._id);
+    const token = generateToken(userWithPass._id);
 
     return {
         message: "Password reset successfully.",
         token,
         user: {
-            id: user._id,
-            first_name: user.first_name,
-            last_name: user.last_name,
-            email: user.email,
-            role: user.role,
+            id: userWithPass._id,
+            first_name: userWithPass.first_name,
+            last_name: userWithPass.last_name,
+            email: userWithPass.email,
+            role: userWithPass.role,
         },
     };
 };
@@ -228,16 +258,16 @@ const resetPassword = async (email, otp, newPassword) => {
  * Resend OTP
  */
 const resendOTP = async (email) => {
-    const user = await User.findOne({ email });
-    if (!user) {
+    const result = await findUserAnywhere(email);
+    if (!result) {
         throw new AppError("User not found", 404);
     }
 
+    const { user } = result;
     const type = user.isEmailVerified ? "reset" : "signup";
     const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
 
-    // Clear old OTPs
     await OTP.deleteMany({ email });
     await OTP.create({
         email,
@@ -249,8 +279,7 @@ const resendOTP = async (email) => {
     console.log(`\n>>> RESEND OTP FOR ${email} (${type}): ${otp} <<<\n`);
 
     const fullName = `${user.first_name} ${user.last_name}`;
-    
-    // Send appropriate email
+
     if (type === "signup") {
         await sendEmail({
             to: email,
@@ -278,11 +307,11 @@ const resendOTP = async (email) => {
 };
 
 /**
- * OTP Status (for frontend timer resumption)
+ * OTP Status
  */
 const otpStatus = async (email) => {
-    const user = await User.findOne({ email });
-    if (!user) {
+    const result = await findUserAnywhere(email);
+    if (!result) {
         throw new AppError("User not found", 404);
     }
 

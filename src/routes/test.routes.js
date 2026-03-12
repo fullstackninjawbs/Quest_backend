@@ -1,6 +1,6 @@
 const express = require("express");
 const router = express.Router();
-const User = require("../models/user.model");
+const Employer = require("../modules/employer/models/employer.model");
 const catchAsync = require("../utils/catchAsync");
 
 /**
@@ -10,18 +10,21 @@ const catchAsync = require("../utils/catchAsync");
 router.get("/db", catchAsync(async (req, res) => {
     // Write
     const tempName = `Test_${Math.random()}`;
-    const user = await User.create({
-        name: tempName,
+    const user = await Employer.create({
+        first_name: "Test",
+        last_name: "User",
         email: `${tempName}@test.com`,
+        phone: "1234567890",
         password: "password123",
-        isVerified: true
+        role: "employer",
+        isEmailVerified: true
     });
 
     // Read
-    const found = await User.findById(user._id);
+    const found = await Employer.findById(user._id);
 
     // cleanup
-    await User.findByIdAndDelete(user._id);
+    await Employer.findByIdAndDelete(user._id);
 
     res.status(200).json({ success: true, userId: found._id });
 }));
@@ -31,7 +34,7 @@ router.get("/db", catchAsync(async (req, res) => {
  */
 router.get("/db-read", catchAsync(async (req, res) => {
     // Just find any user
-    const user = await User.findOne();
+    const user = await Employer.findOne();
     res.status(200).json({ success: true, userId: user?._id });
 }));
 

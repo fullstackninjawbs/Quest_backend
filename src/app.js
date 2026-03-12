@@ -6,7 +6,8 @@ const rateLimit = require("express-rate-limit");
 
 const corsOptions = require("./config/corsOptions");
 const routes = require("./routes/index");
-const errorHandler = require("./middleware/errorHandler.middleware");
+const errorHandler = require("./shared/middleware/errorHandler.middleware");
+const { apiLimiter } = require("./shared/middleware/rateLimiter.middleware");
 const AppError = require("./utils/AppError");
 
 const app = express();
@@ -16,12 +17,7 @@ app.use(helmet());
 app.use(cors(corsOptions));
 
 // ─── Rate Limiting ───────────────────────────────────────────────────────────
-const limiter = rateLimit({
-    windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 100,
-    message: "Too many requests from this IP, please try again later.",
-});
-app.use("/api", limiter);
+app.use("/api", apiLimiter);
 
 // ─── Body Parser ─────────────────────────────────────────────────────────────
 app.use(express.json({ limit: "10kb" }));

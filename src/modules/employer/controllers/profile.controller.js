@@ -1,9 +1,9 @@
-const User = require("../models/user.model");
-const catchAsync = require("../utils/catchAsync");
+const Employer = require("../models/employer.model");
+const catchAsync = require("../../../utils/catchAsync");
 
 /**
  * @desc    Get Employer Profile
- * @route   GET /api/v1/employer/profile
+ * @route   GET /api/v1/employer/employer-profile
  * @access  Private (Employer)
  */
 exports.getEmployerProfile = catchAsync(async (req, res, next) => {
@@ -15,15 +15,15 @@ exports.getEmployerProfile = catchAsync(async (req, res, next) => {
 
 /**
  * @desc    Update Employer Profile
- * @route   PATCH /api/v1/employer/profile
+ * @route   PATCH /api/v1/employer/employer-profile
  * @access  Private (Employer)
  */
 exports.updateEmployerProfile = catchAsync(async (req, res, next) => {
-    const { name, phone, company_name, address } = req.body;
+    const { first_name, last_name, phone, company_name, address } = req.body;
 
-    const updatedUser = await User.findByIdAndUpdate(
+    const updatedUser = await Employer.findByIdAndUpdate(
         req.user._id,
-        { name, phone, company_name, address },
+        { first_name, last_name, phone, company_name, address },
         { new: true, runValidators: true }
     );
 

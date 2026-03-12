@@ -1,4 +1,4 @@
-const AppError = require("../utils/AppError");
+const AppError = require("../../utils/AppError");
 
 const handleCastError = (err) =>
     new AppError(`Invalid ${err.path}: ${err.value}`, 400);

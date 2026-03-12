@@ -1,13 +1,14 @@
-const User = require("../models/user.model");
-const catchAsync = require("../utils/catchAsync");
-const AppError = require("../utils/AppError");
+const SuperAdmin = require("../models/superAdmin.model");
+const Employer = require("../../employer/models/employer.model");
+const catchAsync = require("../../../utils/catchAsync");
+const AppError = require("../../../utils/AppError");
 
 /**
- * @desc    Get Admin Profile
- * @route   GET /api/v1/admin/profile
+ * @desc    Get Super Admin Profile
+ * @route   GET /api/v1/super-admin/superadmin-profile
  * @access  Private (Super Admin)
  */
-exports.getAdminProfile = catchAsync(async (req, res, next) => {
+exports.getSuperAdminProfile = catchAsync(async (req, res, next) => {
     res.status(200).json({
         success: true,
         data: req.user,
@@ -16,17 +17,17 @@ exports.getAdminProfile = catchAsync(async (req, res, next) => {
 
 /**
  * @desc    Get all employers
- * @route   GET /api/v1/admin/employers
+ * @route   GET /api/v1/super-admin/superadmin-employers
  * @access  Private (Super Admin)
  */
 exports.getAllEmployers = catchAsync(async (req, res, next) => {
     // Filter by status if provided in query
-    const filter = { role: "employer" };
+    const filter = {};
     if (req.query.status) {
         filter.status = req.query.status;
     }
 
-    const employers = await User.find(filter).sort("-createdAt");
+    const employers = await Employer.find(filter).sort("-createdAt");
 
     res.status(200).json({
         success: true,
@@ -37,7 +38,7 @@ exports.getAllEmployers = catchAsync(async (req, res, next) => {
 
 /**
  * @desc    Update employer status (Approve/Suspend)
- * @route   PATCH /api/v1/admin/employers/:id/status
+ * @route   PATCH /api/v1/super-admin/superadmin-employers/:id/status
  * @access  Private (Super Admin)
  */
 exports.updateEmployerStatus = catchAsync(async (req, res, next) => {
@@ -48,8 +49,8 @@ exports.updateEmployerStatus = catchAsync(async (req, res, next) => {
         return next(new AppError("Invalid status provided", 400));
     }
 
-    const employer = await User.findOneAndUpdate(
-        { _id: req.params.id, role: "employer" },
+    const employer = await Employer.findByIdAndUpdate(
+        req.params.id,
         { status },
         { new: true, runValidators: true }
     );
@@ -67,14 +68,16 @@ exports.updateEmployerStatus = catchAsync(async (req, res, next) => {
 
 /**
  * @desc    Get platform statistics
- * @route   GET /api/v1/admin/stats
+ * @route   GET /api/v1/super-admin/superadmin-stats
  * @access  Private (Super Admin)
  */
 exports.getPlatformStats = catchAsync(async (req, res, next) => {
-    const stats = await User.aggregate([
+    const totalAdmins = await SuperAdmin.countDocuments();
+    
+    const employerStats = await Employer.aggregate([
         {
             $group: {
-                _id: "$role",
+                _id: "employer",
                 total: { $sum: 1 },
                 active: {
                     $sum: { $cond: [{ $eq: ["$status", "active"] }, 1, 0] }
@@ -88,6 +91,9 @@ exports.getPlatformStats = catchAsync(async (req, res, next) => {
 
     res.status(200).json({
         success: true,
-        data: stats,
+        data: {
+            superAdmins: totalAdmins,
+            employerStats: employerStats[0] || { total: 0, active: 0, pending: 0 }
+        },
     });
 });

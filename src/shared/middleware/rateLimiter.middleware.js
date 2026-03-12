@@ -20,3 +20,6 @@ exports.loginLimiter = createLimiter(5, 2);
 exports.signupLimiter = createLimiter(3, 2);
 exports.otpLimiter = createLimiter(3, 2);
 exports.forgotPasswordLimiter = createLimiter(3, 2);
+
+// General API Rate Limiter
+exports.apiLimiter = createLimiter(100, 15); // 100 requests per 15 mins

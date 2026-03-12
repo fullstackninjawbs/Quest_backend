@@ -1,5 +1,10 @@
 const Joi = require("joi");
 
+const loginSchema = Joi.object({
+    email: Joi.string().email().required(),
+    password: Joi.string().required(),
+});
+
 const registerSchema = Joi.object({
     first_name: Joi.string().min(2).max(50).required(),
     last_name: Joi.string().min(2).max(50).required(),
@@ -10,18 +15,13 @@ const registerSchema = Joi.object({
         "any.only": "Passwords do not match",
     }),
     company_name: Joi.string().required(),
-    business_type: Joi.string().valid("DOT", "NON-DOT").optional(),
+    business_type: Joi.string().valid("DOT", "NON-DOT").required(),
     dot_number: Joi.when("business_type", {
         is: "DOT",
         then: Joi.string().required(),
         otherwise: Joi.string().allow("", null).optional(),
     }),
-    address: Joi.string().optional(),
-});
-
-const loginSchema = Joi.object({
-    email: Joi.string().email().required(),
-    password: Joi.string().required(),
+    address: Joi.string().required(),
 });
 
 const otpSchema = Joi.object({
@@ -46,4 +46,3 @@ module.exports = {
     forgotPasswordSchema,
     resetPasswordSchema,
 };
-

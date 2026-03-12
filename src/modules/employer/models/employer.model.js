@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
 
-const userSchema = new mongoose.Schema(
+const employerSchema = new mongoose.Schema(
     {
         first_name: {
             type: String,
@@ -33,8 +33,8 @@ const userSchema = new mongoose.Schema(
         },
         role: {
             type: String,
-            enum: ["super_admin", "employer"],
-            required: [true, "Role is required"],
+            default: "employer",
+            immutable: true,
         },
         status: {
             type: String,
@@ -63,15 +63,15 @@ const userSchema = new mongoose.Schema(
 );
 
 // Hash password before saving
-userSchema.pre("save", async function (next) {
+employerSchema.pre("save", async function (next) {
     if (!this.isModified("password")) return next();
     this.password = await bcrypt.hash(this.password, 12);
     next();
 });
 
 // Compare passwords
-userSchema.methods.comparePassword = async function (candidatePassword) {
+employerSchema.methods.comparePassword = async function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = mongoose.model("Employer", employerSchema);
