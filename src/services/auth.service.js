@@ -29,7 +29,7 @@ const registerUser = async (userData) => {
     });
 
     const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes from now
 
     // Clear any existing OTPs for this email to prevent conflicts
     await OTP.deleteMany({ email });
@@ -155,7 +155,7 @@ const forgotPassword = async (email) => {
     }
 
     const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes from now
 
     // Clear any existing OTPs for this email to prevent conflicts
     await OTP.deleteMany({ email });
@@ -235,7 +235,7 @@ const resendOTP = async (email) => {
 
     const type = user.isEmailVerified ? "reset" : "signup";
     const otp = generateOTP();
-    const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes
+    const expiresAt = new Date(Date.now() + 2 * 60 * 1000); // 2 minutes
 
     // Clear old OTPs
     await OTP.deleteMany({ email });

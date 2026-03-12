@@ -34,10 +34,10 @@ const sendEmail = async ({ to, subject, text, html, templateParams, name, otp })
                 otp_code: otpVal,
                 code: otpVal,
                 passcode: otpVal,      // Matches your template {{passcode}} !!
-                time: "10 minutes",    // Matches your template {{time}} !!
+                time: "2 minutes",    // Matches your template {{time}} !!
                 message: text || `Your OTP is ${otpVal}`,
                 subject: subject,
-                expiry_time: "10 minutes"
+                expiry_time: "2 minutes"
             };
 
             console.log("[EmailJS] Final Params being sent:", params);
