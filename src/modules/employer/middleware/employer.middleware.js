@@ -22,7 +22,15 @@ const employerAuth = catchAsync(async (req, res, next) => {
         return next(new AppError("Not authenticated. Please login as Employer.", 401));
     }
 
-    const decoded = jwt.verify(token, JWT_SECRET);
+    let decoded;
+    try {
+        decoded = jwt.verify(token, JWT_SECRET);
+    } catch (err) {
+        if (err.name === "TokenExpiredError") {
+            return next(new AppError("Token expired. Please login again.", 401));
+        }
+        return next(new AppError("Invalid token. Please login again.", 401));
+    }
 
     const user = await Employer.findById(decoded.id);
     if (!user) {

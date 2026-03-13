@@ -16,17 +16,17 @@ const validate = require("../../../shared/middleware/validate.middleware");
 const employerValidator = require("../validators/employer.validator");
 
 // Public auth routes
-router.post("/employer-signup", validate(employerValidator.registerSchema), signup);
-router.post("/employer-login", validate(employerValidator.loginSchema), login);
-router.post("/employer-verify", validate(employerValidator.otpSchema), verifyOTP);
-router.post("/employer-resend", validate(employerValidator.forgotPasswordSchema), resendOTP);
-router.post("/employer-otp", validate(employerValidator.forgotPasswordSchema), otpStatus);
-router.post("/employer-forgot", validate(employerValidator.forgotPasswordSchema), forgotPassword);
-router.post("/employer-reset", validate(employerValidator.resetPasswordSchema), resetPassword);
+router.post("/signup", validate(employerValidator.registerSchema), signup);
+router.post("/login", validate(employerValidator.loginSchema), login);
+router.post("/verify", validate(employerValidator.otpSchema), verifyOTP);
+router.post("/resend", validate(employerValidator.forgotPasswordSchema), resendOTP);
+router.post("/otp", validate(employerValidator.forgotPasswordSchema), otpStatus);
+router.post("/forgot", validate(employerValidator.forgotPasswordSchema), forgotPassword);
+router.post("/reset", validate(employerValidator.resetPasswordSchema), resetPassword);
 
 // Private auth routes
 router.use(employerAuth);
-router.post("/employer-logout", logout);
-router.get("/employer-me", getMe);
+router.post("/logout", logout);
+router.get("/me", getMe);
 
 module.exports = router;

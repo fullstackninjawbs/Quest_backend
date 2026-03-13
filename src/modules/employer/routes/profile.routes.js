@@ -9,7 +9,7 @@ const employerAuth = require("../middleware/employer.middleware");
 // Protect all routes
 router.use(employerAuth);
 
-router.get("/employer-profile", getEmployerProfile);
-router.patch("/employer-profile", updateEmployerProfile);
+router.get("/profile", getEmployerProfile);
+router.patch("/profile", updateEmployerProfile);
 
 module.exports = router;

@@ -9,7 +9,7 @@ const dashboardRoutes = require("./dashboard.routes");
 router.use("/", authRoutes);
 
 // Super Admin Dashboard Features
-// Endpoints: /api/v1/super-admin/superadmin-stats, etc.
+// Endpoints: /api/v1/super-admin/stats, etc.
 router.use("/", dashboardRoutes);
 
 module.exports = router;
