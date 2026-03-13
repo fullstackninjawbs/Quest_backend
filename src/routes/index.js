@@ -5,7 +5,7 @@ const employerRoutes = require("../modules/employer/routes");
 const testRoutes = require("./test.routes");
 
 // 👑 Super Admin Module (Login, Dashboard, Stats)
-router.use("/super-admin", superAdminRoutes);
+router.use("/superadmin", superAdminRoutes);
 
 // 🏢 Employer Module (Login, Profile, Settings)
 router.use("/employer", employerRoutes);

@@ -113,3 +113,18 @@ exports.getMe = catchAsync(async (req, res, next) => {
         user: req.user,
     });
 });
+
+// @desc    Change Password for Super Admin
+// @route   POST /api/v1/super-admin/auth/change-password
+exports.changePassword = catchAsync(async (req, res, next) => {
+    const result = await authService.changePassword(
+        req.user._id,
+        "super_admin",
+        req.body
+    );
+
+    res.status(200).json({
+        success: true,
+        ...result,
+    });
+});

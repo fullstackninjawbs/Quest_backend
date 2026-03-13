@@ -335,6 +335,32 @@ const otpStatus = async (email) => {
     };
 };
 
+/**
+ * Change Password (for authenticated users)
+ */
+const changePassword = async (userId, role, passwords) => {
+    const { currentPassword, newPassword, confirmPassword } = passwords;
+
+    if (newPassword !== confirmPassword) {
+        throw new AppError("New passwords do not match", 400);
+    }
+
+    const Model = getModelByRole(role);
+    const user = await Model.findById(userId).select("+password");
+
+    if (!user || !(await user.comparePassword(currentPassword))) {
+        throw new AppError("Invalid current password", 401);
+    }
+
+    user.password = newPassword;
+    user.markModified("password"); // Essential for hashing middleware to trigger
+    await user.save();
+
+    return {
+        message: "Password updated successfully",
+    };
+};
+
 module.exports = {
     registerUser,
     verifyOTP,
@@ -343,5 +369,6 @@ module.exports = {
     resetPassword,
     resendOTP,
     otpStatus,
+    changePassword,
 };
 

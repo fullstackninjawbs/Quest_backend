@@ -9,7 +9,8 @@ const {
     forgotPassword,
     resetPassword,
     logout,
-    getMe
+    getMe,
+    changePassword
 } = require("../controllers/auth.controller");
 const employerAuth = require("../middleware/employer.middleware");
 const validate = require("../../../shared/middleware/validate.middleware");
@@ -28,5 +29,6 @@ router.post("/reset", validate(employerValidator.resetPasswordSchema), resetPass
 router.use(employerAuth);
 router.post("/logout", logout);
 router.get("/me", getMe);
+router.post("/change-password", changePassword);
 
 module.exports = router;

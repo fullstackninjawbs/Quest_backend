@@ -113,3 +113,18 @@ exports.getMe = catchAsync(async (req, res, next) => {
         user: req.user,
     });
 });
+
+// @desc    Change Password for Employer
+// @route   POST /api/v1/employer/auth/change-password
+exports.changePassword = catchAsync(async (req, res, next) => {
+    const result = await authService.changePassword(
+        req.user._id,
+        "employer",
+        req.body
+    );
+
+    res.status(200).json({
+        success: true,
+        ...result,
+    });
+});
