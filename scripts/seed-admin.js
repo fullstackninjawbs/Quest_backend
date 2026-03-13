@@ -1,7 +1,7 @@
 const mongoose = require("mongoose");
 const dotenv = require("dotenv");
 const path = require("path");
-const User = require("../src/models/user.model");
+const SuperAdmin = require("../src/modules/superAdmin/models/superAdmin.model");
 
 // Load env vars
 dotenv.config({ path: path.join(__dirname, "../.env") });
@@ -12,14 +12,15 @@ const seedAdmin = async () => {
         await mongoose.connect(process.env.MONGO_URI);
         console.log("Connected Successfully.");
 
-        const adminEmail = "admin@ascquest.com";
-        const adminPassword = "AdminPassword123!";
+        const adminEmail = process.env.SUPER_ADMIN_EMAIL || "admin@ascquest.com";
+        const adminPassword = process.env.SUPER_ADMIN_PASSWORD || "AdminPassword123!";
 
         // Delete existing admin if any
-        await User.deleteOne({ email: adminEmail });
+        await SuperAdmin.deleteOne({ email: adminEmail });
 
-        const admin = new User({
-            name: "Super Admin",
+        const admin = new SuperAdmin({
+            first_name: "Super",
+            last_name: "Admin",
             email: adminEmail,
             password: adminPassword,
             phone: "0000000000",

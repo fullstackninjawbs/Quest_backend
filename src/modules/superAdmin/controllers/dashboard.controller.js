@@ -17,7 +17,7 @@ exports.getSuperAdminProfile = catchAsync(async (req, res, next) => {
 
 /**
  * @desc    Get all employers
- * @route   GET /api/v1/super-admin/emp
+ * @route   GET /api/v1/super-admin/employers
  * @access  Private (Super Admin)
  */
 exports.getAllEmployers = catchAsync(async (req, res, next) => {

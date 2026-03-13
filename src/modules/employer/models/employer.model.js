@@ -58,6 +58,21 @@ const employerSchema = new mongoose.Schema(
             },
         },
         address: String,
+        // Audit and Stats fields
+        last_modified_by: {
+            type: mongoose.Schema.Types.ObjectId,
+            ref: "SuperAdmin",
+        },
+        last_modified_at: Date,
+        suspension_reason: String,
+        employee_count: {
+            type: Number,
+            default: 0,
+        },
+        total_orders: {
+            type: Number,
+            default: 0,
+        },
     },
     { timestamps: true }
 );
