@@ -2,7 +2,8 @@ const express = require("express");
 const router = express.Router();
 const {
     getEmployerProfile,
-    updateEmployerProfile
+    updateEmployerProfile,
+    deleteOwnProfile
 } = require("../controllers/profile.controller");
 const employerAuth = require("../middleware/employer.middleware");
 
@@ -11,5 +12,6 @@ router.use(employerAuth);
 
 router.get("/profile", getEmployerProfile);
 router.patch("/profile", updateEmployerProfile);
+router.delete("/emp/profile-delete", deleteOwnProfile);
 
 module.exports = router;

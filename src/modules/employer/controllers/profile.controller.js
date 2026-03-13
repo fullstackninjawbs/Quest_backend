@@ -32,3 +32,17 @@ exports.updateEmployerProfile = catchAsync(async (req, res, next) => {
         data: updatedUser,
     });
 });
+
+/**
+ * @desc    Delete (Self) Employer Profile
+ * @route   DELETE /api/v1/employer/profile-delete
+ * @access  Private (Employer)
+ */
+exports.deleteOwnProfile = catchAsync(async (req, res, next) => {
+    await Employer.findByIdAndDelete(req.user._id);
+
+    res.status(200).json({
+        success: true,
+        message: "Your account has been permanently deleted",
+    });
+});
