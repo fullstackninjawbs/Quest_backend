@@ -1,7 +1,6 @@
 const express = require("express");
 const router = express.Router();
 const {
-    signup,
     login,
     verifyOTP,
     resendOTP,
@@ -16,7 +15,6 @@ const validate = require("../../../shared/middleware/validate.middleware");
 const adminValidator = require("../validators/superAdmin.validator");
 
 // Public auth routes
-router.post("/signup", validate(adminValidator.registerSchema), signup);
 router.post("/login", validate(adminValidator.loginSchema), login);
 router.post("/verify", validate(adminValidator.otpSchema), verifyOTP);
 router.post("/resend", validate(adminValidator.forgotPasswordSchema), resendOTP);
