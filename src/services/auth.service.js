@@ -341,6 +341,10 @@ const otpStatus = async (email) => {
 const changePassword = async (userId, role, passwords) => {
     const { currentPassword, newPassword, confirmPassword } = passwords;
 
+    if (!currentPassword || !newPassword || !confirmPassword) {
+        throw new AppError("All fields (currentPassword, newPassword, confirmPassword) are required", 400);
+    }
+
     if (newPassword !== confirmPassword) {
         throw new AppError("New passwords do not match", 400);
     }
