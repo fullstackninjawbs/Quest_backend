@@ -234,6 +234,7 @@ const resetPassword = async (email, otp, newPassword) => {
     const userWithPass = await Model.findById(user._id).select("+password");
 
     userWithPass.password = newPassword;
+    userWithPass.isEmailVerified = true; // Successfully resetting password via OTP verifies the email
     await userWithPass.save();
 
     otpRecord.used = true;
@@ -264,7 +265,8 @@ const resendOTP = async (email) => {
     }
 
     const { user } = result;
-    const type = user.isEmailVerified ? "reset" : "signup";
+    const lastOtp = await OTP.findOne({ email }).sort({ createdAt: -1 });
+    const type = lastOtp ? lastOtp.type : (user.isEmailVerified ? "reset" : "signup");
     const otp = generateOTP();
     const expiresAt = new Date(Date.now() + 2 * 60 * 1000);
 
