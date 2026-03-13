@@ -13,7 +13,7 @@ router.use(superAdminAuth);
 
 router.get("/profile", getSuperAdminProfile);
 router.get("/employers", getAllEmployers);
-router.patch("/employers/:id/status", updateEmployerStatus);
+router.patch("/emp/:id/status", updateEmployerStatus);
 router.get("/stats", getPlatformStats);
 
 module.exports = router;

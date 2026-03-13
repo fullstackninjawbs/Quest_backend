@@ -17,7 +17,7 @@ exports.getSuperAdminProfile = catchAsync(async (req, res, next) => {
 
 /**
  * @desc    Get all employers
- * @route   GET /api/v1/super-admin/superadmin-employers
+ * @route   GET /api/v1/super-admin/emp
  * @access  Private (Super Admin)
  */
 exports.getAllEmployers = catchAsync(async (req, res, next) => {
@@ -38,7 +38,7 @@ exports.getAllEmployers = catchAsync(async (req, res, next) => {
 
 /**
  * @desc    Update employer status (Approve/Suspend)
- * @route   PATCH /api/v1/super-admin/superadmin-employers/:id/status
+ * @route   PATCH /api/v1/super-admin/emp/:id/status
  * @access  Private (Super Admin)
  */
 exports.updateEmployerStatus = catchAsync(async (req, res, next) => {
