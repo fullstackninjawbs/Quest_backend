@@ -140,7 +140,7 @@ const verifyOTP = async (email, otp) => {
 const loginUser = async (email, password) => {
     const result = await findUserAnywhere(email);
     if (!result) {
-        throw new AppError("Invalid email or password", 401);
+        throw new AppError("Invalid email: User not found", 401);
     }
 
     const { user, role } = result;
@@ -150,7 +150,7 @@ const loginUser = async (email, password) => {
     const userWithPass = await Model.findById(user._id).select("+password");
 
     if (!userWithPass || !(await userWithPass.comparePassword(password))) {
-        throw new AppError("Invalid email or password", 401);
+        throw new AppError("Invalid password", 401);
     }
 
     if (role === "employer" && !userWithPass.isEmailVerified) {
@@ -234,6 +234,7 @@ const resetPassword = async (email, otp, newPassword) => {
     const userWithPass = await Model.findById(user._id).select("+password");
 
     userWithPass.password = newPassword;
+    userWithPass.markModified("password"); // Force mongoose to see the change for hashing hook
     userWithPass.isEmailVerified = true; // Successfully resetting password via OTP verifies the email
     await userWithPass.save();
 
