@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <CreateOrder xmlns="http://wssim.labone.com/">
+      <username>cli_AmericanScreeningUAT</username>
+      <password>83kAN6Nd6me6</password>
+      <orderXml><![CDATA[<Order>
+ <EventInfo>
+  <CollectionSiteID></CollectionSiteID>
+  <EmailAuthorizationAddresses>
+   <EmailAddress>john.doe@example.com</EmailAddress>
+  </EmailAuthorizationAddresses>
+  <EndDateTime></EndDateTime>
+  <EndDateTimeTimeZoneID></EndDateTimeTimeZoneID>
+ </EventInfo>
+ <DonorInfo>
+  <FirstName>JOHN</FirstName>
+  <MiddleName></MiddleName>
+  <LastName>DOE</LastName>
+  <PrimaryID>TEST123</PrimaryID>
+  <PrimaryIDType>EIN</PrimaryIDType>
+  <DOB>2000/02/22</DOB>
+  <PrimaryPhone>5550199</PrimaryPhone>
+  <SecondaryPhone></SecondaryPhone>
+ </DonorInfo>
+ <ClientInfo>
+  <ContactName>System Admin</ContactName>
+  <TelephoneNumber>9887123123</TelephoneNumber>
+  <LabAccount>11321272</LabAccount>
+  <CSL></CSL>
+ </ClientInfo>
+ <TestInfo>
+  <ClientReferenceID>ORD-1777562317150-XP4BJ</ClientReferenceID>
+  <DOTTest>N</DOTTest>
+  <TestingAuthority></TestingAuthority>
+  <ReasonForTestID>1</ReasonForTestID>
+  <PhysicalReasonForTestID></PhysicalReasonForTestID>
+  <ObservedRequested>N</ObservedRequested>
+  <SplitSpecimenRequested>N</SplitSpecimenRequested>
+  <CSOs></CSOs>
+  <OrderComments></OrderComments>
+  <Screenings>
+   <UnitCodes>
+    <UnitCode>35105N</UnitCode>
+   </UnitCodes>
+  </Screenings>
+ </TestInfo>
+ <ClientCustom>
+  <ResponseURL></ResponseURL>
+ </ClientCustom>
+</Order>]]></orderXml>
+    </CreateOrder>
+  </soap:Body>
+</soap:Envelope>

@@ -15,3 +15,9 @@ export const MONGO_URI = process.env.MONGO_URI;
 export const JWT_SECRET = process.env.JWT_SECRET;
 export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 export const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+
+// Quest Diagnostics Integration
+export const QUEST_USERNAME = process.env.QUEST_USERNAME || "cli_AmericanScreeningUAT";
+export const QUEST_PASSWORD = process.env.QUEST_PASSWORD || '83kAN6Nd6me6';
+export const QUEST_SOAP_URL = process.env.QUEST_SOAP_URL;
+export const QUEST_ACCOUNT_ID = process.env.QUEST_ACCOUNT_ID;
