@@ -1,4 +1,4 @@
-const emailjs = require("@emailjs/nodejs");
+import emailjs from "@emailjs/nodejs";
 
 // Configure EmailJS
 emailjs.init({
@@ -10,7 +10,7 @@ emailjs.init({
  * Send an email.
  * @param {Object} options - { to, subject, text, html, templateParams, name }
  */
-const sendEmail = async ({ to, subject, text, html, templateParams, name, otp }) => {
+export const sendEmail = async ({ to, subject, text, html, templateParams, name, otp }) => {
     const isMailerTrue = process.env.MAILER === "true";
 
     if (isMailerTrue) {
@@ -63,5 +63,3 @@ const logFallback = (to, subject, content) => {
     console.log("Content:", content);
     console.log("------------------------------");
 };
-
-module.exports = { sendEmail };

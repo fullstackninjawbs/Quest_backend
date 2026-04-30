@@ -1,11 +1,11 @@
-const Joi = require("joi");
+import Joi from "joi";
 
-const loginSchema = Joi.object({
+export const loginSchema = Joi.object({
     email: Joi.string().email().required(),
     password: Joi.string().required(),
 });
 
-const registerSchema = Joi.object({
+export const registerSchema = Joi.object({
     first_name: Joi.string().min(2).max(50).required(),
     last_name: Joi.string().min(2).max(50).required(),
     email: Joi.string().email().required(),
@@ -16,25 +16,17 @@ const registerSchema = Joi.object({
     }),
 });
 
-const otpSchema = Joi.object({
+export const otpSchema = Joi.object({
     email: Joi.string().email().required(),
     otp: Joi.string().length(6).required(),
 });
 
-const forgotPasswordSchema = Joi.object({
+export const forgotPasswordSchema = Joi.object({
     email: Joi.string().email().required(),
 });
 
-const resetPasswordSchema = Joi.object({
+export const resetPasswordSchema = Joi.object({
     email: Joi.string().email().required(),
     otp: Joi.string().length(6).required(),
     password: Joi.string().min(8).required(),
 });
-
-module.exports = {
-    registerSchema,
-    loginSchema,
-    otpSchema,
-    forgotPasswordSchema,
-    resetPasswordSchema,
-};

@@ -1,14 +1,14 @@
-const Employer = require("../../employer/models/employer.model");
-const AuditLog = require("../models/auditLog.model");
-const catchAsync = require("../../../utils/catchAsync");
-const AppError = require("../../../utils/AppError");
+import Employer from "../../employer/models/employer.model.js";
+import AuditLog from "../models/auditLog.model.js";
+import catchAsync from "../../../utils/catchAsync.js";
+import AppError from "../../../utils/AppError.js";
 
 /**
  * @desc    Get Detailed Employer Profile
  * @route   GET /api/v1/super-admin/emp/:id/detail-profile
  * @access  Private (Super Admin)
  */
-exports.getEmployerProfile = catchAsync(async (req, res, next) => {
+export const getEmployerProfile = catchAsync(async (req, res, next) => {
     const employer = await Employer.findById(req.params.id);
 
     if (!employer) {
@@ -26,7 +26,7 @@ exports.getEmployerProfile = catchAsync(async (req, res, next) => {
  * @route   PUT /api/v1/super-admin/emp/:id/profile-edit
  * @access  Private (Super Admin)
  */
-exports.updateEmployerProfile = catchAsync(async (req, res, next) => {
+export const updateEmployerProfile = catchAsync(async (req, res, next) => {
     const employer = await Employer.findById(req.params.id);
 
     if (!employer) {
@@ -76,7 +76,7 @@ exports.updateEmployerProfile = catchAsync(async (req, res, next) => {
  * @route   DELETE /api/v1/super-admin/emp/:id/delete
  * @access  Private (Super Admin)
  */
-exports.deleteEmployerProfile = catchAsync(async (req, res, next) => {
+export const deleteEmployerProfile = catchAsync(async (req, res, next) => {
     const employer = await Employer.findById(req.params.id);
 
     if (!employer) {

@@ -1,7 +1,7 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const Employer = require("../modules/employer/models/employer.model");
-const catchAsync = require("../utils/catchAsync");
+import Employer from "../modules/employer/models/employer.model.js";
+import catchAsync from "../utils/catchAsync.js";
 
 /**
  * Endpoint for testing DB performance.
@@ -38,4 +38,4 @@ router.get("/db-read", catchAsync(async (req, res) => {
     res.status(200).json({ success: true, userId: user?._id });
 }));
 
-module.exports = router;
+export default router;

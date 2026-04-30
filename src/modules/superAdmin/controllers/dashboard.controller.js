@@ -1,14 +1,14 @@
-const SuperAdmin = require("../models/superAdmin.model");
-const Employer = require("../../employer/models/employer.model");
-const catchAsync = require("../../../utils/catchAsync");
-const AppError = require("../../../utils/AppError");
+import SuperAdmin from "../models/superAdmin.model.js";
+import Employer from "../../employer/models/employer.model.js";
+import catchAsync from "../../../utils/catchAsync.js";
+import AppError from "../../../utils/AppError.js";
 
 /**
  * @desc    Get Super Admin Profile
  * @route   GET /api/v1/super-admin/superadmin-profile
  * @access  Private (Super Admin)
  */
-exports.getSuperAdminProfile = catchAsync(async (req, res, next) => {
+export const getSuperAdminProfile = catchAsync(async (req, res, next) => {
     res.status(200).json({
         success: true,
         data: req.user,
@@ -20,7 +20,7 @@ exports.getSuperAdminProfile = catchAsync(async (req, res, next) => {
  * @route   GET /api/v1/super-admin/employers
  * @access  Private (Super Admin)
  */
-exports.getAllEmployers = catchAsync(async (req, res, next) => {
+export const getAllEmployers = catchAsync(async (req, res, next) => {
     // Filter by status if provided in query
     const filter = {};
     if (req.query.status) {
@@ -41,7 +41,7 @@ exports.getAllEmployers = catchAsync(async (req, res, next) => {
  * @route   PATCH /api/v1/super-admin/emp/:id/status
  * @access  Private (Super Admin)
  */
-exports.updateEmployerStatus = catchAsync(async (req, res, next) => {
+export const updateEmployerStatus = catchAsync(async (req, res, next) => {
     const { status } = req.body;
     
     // Validate status
@@ -71,7 +71,7 @@ exports.updateEmployerStatus = catchAsync(async (req, res, next) => {
  * @route   GET /api/v1/super-admin/superadmin-stats
  * @access  Private (Super Admin)
  */
-exports.getPlatformStats = catchAsync(async (req, res, next) => {
+export const getPlatformStats = catchAsync(async (req, res, next) => {
     const totalAdmins = await SuperAdmin.countDocuments();
     
     const employerStats = await Employer.aggregate([

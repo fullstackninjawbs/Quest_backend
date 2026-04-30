@@ -1,10 +1,10 @@
-const SuperAdmin = require("../modules/superAdmin/models/superAdmin.model");
-const Employer = require("../modules/employer/models/employer.model");
-const OTP = require("../shared/models/otp.model");
-const { generateToken, generateOTP, hashOTP } = require("../utils/token.util");
-const AppError = require("../utils/AppError");
-const { sendEmail } = require("./email.service");
-const emailTemplates = require("../utils/emailTemplates");
+import SuperAdmin from "../modules/superAdmin/models/superAdmin.model.js";
+import Employer from "../modules/employer/models/employer.model.js";
+import OTP from "../shared/models/otp.model.js";
+import { generateToken, generateOTP, hashOTP } from "../utils/token.util.js";
+import AppError from "../utils/AppError.js";
+import { sendEmail } from "./email.service.js";
+import * as emailTemplates from "../utils/emailTemplates.js";
 
 /**
  * Helper to get the correct model based on role
@@ -365,7 +365,7 @@ const changePassword = async (userId, role, passwords) => {
     };
 };
 
-module.exports = {
+export {
     registerUser,
     verifyOTP,
     loginUser,

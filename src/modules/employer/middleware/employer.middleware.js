@@ -1,8 +1,8 @@
-const jwt = require("jsonwebtoken");
-const Employer = require("../models/employer.model");
-const AppError = require("../../../utils/AppError");
-const catchAsync = require("../../../utils/catchAsync");
-const { JWT_SECRET } = require("../../../config/env");
+import jwt from "jsonwebtoken";
+import Employer from "../models/employer.model.js";
+import AppError from "../../../utils/AppError.js";
+import catchAsync from "../../../utils/catchAsync.js";
+import { JWT_SECRET } from "../../../config/env.js";
 
 /**
  * Specialized middleware for Employer authentication and authorization.
@@ -46,4 +46,4 @@ const employerAuth = catchAsync(async (req, res, next) => {
     next();
 });
 
-module.exports = employerAuth;
+export default employerAuth;

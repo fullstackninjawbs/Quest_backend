@@ -1,4 +1,4 @@
-const axios = require("axios");
+import axios from "axios";
 
 /**
  * Script to simulate 500 concurrent users (Milestone 3).

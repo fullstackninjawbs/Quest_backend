@@ -1,8 +1,8 @@
-const jwt = require("jsonwebtoken");
-const SuperAdmin = require("../models/superAdmin.model");
-const AppError = require("../../../utils/AppError");
-const catchAsync = require("../../../utils/catchAsync");
-const { JWT_SECRET } = require("../../../config/env");
+import jwt from "jsonwebtoken";
+import SuperAdmin from "../models/superAdmin.model.js";
+import AppError from "../../../utils/AppError.js";
+import catchAsync from "../../../utils/catchAsync.js";
+import { JWT_SECRET } from "../../../config/env.js";
 
 /**
  * Specialized middleware for Super Admin authentication and authorization.
@@ -46,4 +46,4 @@ const superAdminAuth = catchAsync(async (req, res, next) => {
     next();
 });
 
-module.exports = superAdminAuth;
+export default superAdminAuth;

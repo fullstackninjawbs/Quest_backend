@@ -1,10 +1,10 @@
-const authService = require("../../../services/auth.service");
-const catchAsync = require("../../../utils/catchAsync");
+import * as authService from "../../../services/auth.service.js";
+import catchAsync from "../../../utils/catchAsync.js";
 
 // @desc    Super Admin Signup
 // @route   POST /api/v1/super-admin/auth/signup
 // @access  Public
-exports.signup = catchAsync(async (req, res, next) => {
+export const signup = catchAsync(async (req, res, next) => {
     // Inject the role for safety or handle it in service
     const signupData = { ...req.body, role: "super_admin" };
     const result = await authService.registerUser(signupData);
@@ -18,7 +18,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 // @desc    Login Super Admin
 // @route   POST /api/v1/super-admin/auth/login
 // @access  Public
-exports.login = catchAsync(async (req, res, next) => {
+export const login = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
     const result = await authService.loginUser(email, password);
 
@@ -38,7 +38,7 @@ exports.login = catchAsync(async (req, res, next) => {
 
 // @desc    Verify OTP for Super Admin
 // @route   POST /api/v1/super-admin/auth/verify-otp
-exports.verifyOTP = catchAsync(async (req, res, next) => {
+export const verifyOTP = catchAsync(async (req, res, next) => {
     const { email, otp } = req.body;
     const result = await authService.verifyOTP(email, otp);
 
@@ -50,7 +50,7 @@ exports.verifyOTP = catchAsync(async (req, res, next) => {
 
 // @desc    Resend OTP for Super Admin
 // @route   POST /api/v1/super-admin/auth/resend-otp
-exports.resendOTP = catchAsync(async (req, res, next) => {
+export const resendOTP = catchAsync(async (req, res, next) => {
     const { email } = req.body;
     const result = await authService.resendOTP(email);
 
@@ -62,7 +62,7 @@ exports.resendOTP = catchAsync(async (req, res, next) => {
 
 // @desc    OTP Status for Super Admin
 // @route   POST /api/v1/super-admin/auth/otp-status
-exports.otpStatus = catchAsync(async (req, res, next) => {
+export const otpStatus = catchAsync(async (req, res, next) => {
     const { email } = req.body;
     const result = await authService.otpStatus(email);
 
@@ -74,7 +74,7 @@ exports.otpStatus = catchAsync(async (req, res, next) => {
 
 // @desc    Forgot Password for Super Admin
 // @route   POST /api/v1/super-admin/auth/forgot-password
-exports.forgotPassword = catchAsync(async (req, res, next) => {
+export const forgotPassword = catchAsync(async (req, res, next) => {
     const { email } = req.body;
     const result = await authService.forgotPassword(email);
 
@@ -86,7 +86,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
 // @desc    Reset Password for Super Admin
 // @route   POST /api/v1/super-admin/auth/reset-password
-exports.resetPassword = catchAsync(async (req, res, next) => {
+export const resetPassword = catchAsync(async (req, res, next) => {
     const { email, otp, password } = req.body;
     const result = await authService.resetPassword(email, otp, password);
 
@@ -98,7 +98,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 
 // @desc    Logout Super Admin
 // @route   POST /api/v1/super-admin/auth/logout
-exports.logout = catchAsync(async (req, res, next) => {
+export const logout = catchAsync(async (req, res, next) => {
     res.status(200).json({
         success: true,
         message: "Super Admin logged out successfully.",
@@ -107,7 +107,7 @@ exports.logout = catchAsync(async (req, res, next) => {
 
 // @desc    Get Current Super Admin
 // @route   GET /api/v1/super-admin/auth/me
-exports.getMe = catchAsync(async (req, res, next) => {
+export const getMe = catchAsync(async (req, res, next) => {
     res.status(200).json({
         success: true,
         user: req.user,
@@ -116,7 +116,7 @@ exports.getMe = catchAsync(async (req, res, next) => {
 
 // @desc    Change Password for Super Admin
 // @route   POST /api/v1/super-admin/auth/change-password
-exports.changePassword = catchAsync(async (req, res, next) => {
+export const changePassword = catchAsync(async (req, res, next) => {
     const result = await authService.changePassword(
         req.user._id,
         "super_admin",

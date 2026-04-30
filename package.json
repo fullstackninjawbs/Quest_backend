@@ -2,6 +2,7 @@
   "name": "asc-quest-backend",
   "version": "1.0.0",
   "description": "Asc Quest Backend API",
+  "type": "module",
   "main": "server.js",
   "scripts": {
     "start": "node server.js",

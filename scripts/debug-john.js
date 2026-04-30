@@ -1,11 +1,11 @@
-const mongoose = require('mongoose');
-const Employer = require('./src/modules/employer/models/employer.model');
-const bcrypt = require('bcryptjs');
-const { MONGODB_URI } = require('./src/config/env');
+import mongoose from 'mongoose';
+import Employer from '../src/modules/employer/models/employer.model.js';
+import bcrypt from 'bcryptjs';
+import { MONGO_URI } from '../src/config/env.js';
 
 async function debugEmployer() {
     try {
-        await mongoose.connect(MONGODB_URI);
+        await mongoose.connect(MONGO_URI);
         const email = 'john@taxi-fleet.com';
         const user = await Employer.findOne({ email }).select('+password');
         

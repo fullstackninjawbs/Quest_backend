@@ -1,14 +1,14 @@
-const express = require("express");
-const cors = require("cors");
-const helmet = require("helmet");
-const morgan = require("morgan");
-const rateLimit = require("express-rate-limit");
+import express from "express";
+import cors from "cors";
+import helmet from "helmet";
+import morgan from "morgan";
+import rateLimit from "express-rate-limit";
 
-const corsOptions = require("./config/corsOptions");
-const routes = require("./routes/index");
-const errorHandler = require("./shared/middleware/errorHandler.middleware");
-const { apiLimiter } = require("./shared/middleware/rateLimiter.middleware");
-const AppError = require("./utils/AppError");
+import corsOptions from "./config/corsOptions.js";
+import routes from "./routes/index.js";
+import errorHandler from "./shared/middleware/errorHandler.middleware.js";
+import { apiLimiter } from "./shared/middleware/rateLimiter.middleware.js";
+import AppError from "./utils/AppError.js";
 
 const app = express();
 
@@ -44,4 +44,4 @@ app.all("*", (req, res, next) =>
 // ─── Global Error Handler ────────────────────────────────────────────────────
 app.use(errorHandler);
 
-module.exports = app;
+export default app;

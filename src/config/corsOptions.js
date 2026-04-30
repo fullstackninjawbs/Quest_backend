@@ -1,4 +1,4 @@
-const { FRONTEND_URL } = require("./env");
+import { FRONTEND_URL } from "./env.js";
 
 const corsOptions = {
     origin: [FRONTEND_URL, "http://localhost:5173", "http://127.0.0.1:5173"],
@@ -7,4 +7,4 @@ const corsOptions = {
     credentials: true,
 };
 
-module.exports = corsOptions;
+export default corsOptions;

@@ -41,7 +41,7 @@ const footerStyle = `
     text-align: center;
 `;
 
-exports.signupVerification = (name, otp) => `
+export const signupVerification = (name, otp) => `
     <div style="${baseStyle}">
         <div style="${headerStyle}">
             <h1>Welcome to Asc Quest</h1>
@@ -57,7 +57,7 @@ exports.signupVerification = (name, otp) => `
     </div>
 `;
 
-exports.loginOTP = (otp) => `
+export const loginOTP = (otp) => `
     <div style="${baseStyle}">
         <div style="${headerStyle}">
             <h1>Login Verification</h1>
@@ -73,7 +73,7 @@ exports.loginOTP = (otp) => `
     </div>
 `;
 
-exports.passwordResetOTP = (otp) => `
+export const passwordResetOTP = (otp) => `
     <div style="${baseStyle}">
         <div style="${headerStyle}">
             <h1>Password Reset Request</h1>

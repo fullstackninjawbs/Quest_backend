@@ -1,8 +1,8 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const authRoutes = require("./auth.routes");
-const profileRoutes = require("./profile.routes");
+import authRoutes from "./auth.routes.js";
+import profileRoutes from "./profile.routes.js";
 
 // Employer Authentication
 // Endpoints: /api/v1/employer/signup, /api/v1/employer/login, etc.
@@ -12,4 +12,4 @@ router.use("/", authRoutes);
 // Endpoints: /api/v1/employer/profile, etc.
 router.use("/", profileRoutes);
 
-module.exports = router;
+export default router;

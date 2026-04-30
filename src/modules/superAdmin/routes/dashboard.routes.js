@@ -1,12 +1,12 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const {
+import {
     getSuperAdminProfile,
     getAllEmployers,
     updateEmployerStatus,
     getPlatformStats
-} = require("../controllers/dashboard.controller");
-const superAdminAuth = require("../middleware/superAdmin.middleware");
+} from "../controllers/dashboard.controller.js";
+import superAdminAuth from "../middleware/superAdmin.middleware.js";
 
 // Protect all routes below this middleware
 router.use(superAdminAuth);
@@ -16,4 +16,4 @@ router.get("/employers", getAllEmployers);
 router.patch("/emp/:id/status", updateEmployerStatus);
 router.get("/stats", getPlatformStats);
 
-module.exports = router;
+export default router;

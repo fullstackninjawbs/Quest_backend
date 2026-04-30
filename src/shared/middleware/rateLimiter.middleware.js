@@ -1,4 +1,4 @@
-const rateLimit = require("express-rate-limit");
+import rateLimit from "express-rate-limit";
 
 /**
  * Shared configuration for rate limiters
@@ -16,10 +16,10 @@ const createLimiter = (max, minutes) => {
     });
 };
 
-exports.loginLimiter = createLimiter(5, 2);
-exports.signupLimiter = createLimiter(3, 2);
-exports.otpLimiter = createLimiter(3, 2);
-exports.forgotPasswordLimiter = createLimiter(3, 2);
+export const loginLimiter = createLimiter(5, 2);
+export const signupLimiter = createLimiter(3, 2);
+export const otpLimiter = createLimiter(3, 2);
+export const forgotPasswordLimiter = createLimiter(3, 2);
 
 // General API Rate Limiter
-exports.apiLimiter = createLimiter(100, 15); // 100 requests per 15 mins
+export const apiLimiter = createLimiter(100, 15); // 100 requests per 15 mins

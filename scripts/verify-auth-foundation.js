@@ -1,13 +1,19 @@
-const axios = require("axios");
-const mongoose = require("mongoose");
-const dotenv = require("dotenv");
-const path = require("path");
+import axios from "axios";
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import path from "path";
+import crypto from "crypto";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Load env vars
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
-const OTP = require("../src/models/otp.model");
-const User = require("../src/models/user.model");
+import OTP from "../src/shared/models/otp.model.js";
+import Employer from "../src/modules/employer/models/employer.model.js";
 
 const API_URL = "http://localhost:5001/api/v1/auth";
 
@@ -51,15 +57,9 @@ async function runTests() {
         const signupOTP = await OTP.findOne({ email: testEmail, type: "signup" }).sort({ createdAt: -1 });
         console.log("New Signup OTP found in DB:", signupOTP ? "Yes" : "No");
 
-        // 5. Verify Signup OTP (Real world would hash input, but our service hashes and compares)
-        // Wait, our service uses hashOTP(otp) to compare. I need to know the raw OTP.
-        // I should have logged it in the service for testing or made it deterministic for tests.
-        // Actually, since I'm the one who wrote the service, I know it generates a random 6-digit number.
-        // I'll just clear the OTPs and manually create one that I know for testing.
-
+        // 5. Verify Signup OTP
         console.log(`Manually inserting a known OTP for verification for email: ${testEmail}...`);
         const rawOTP = "123456";
-        const crypto = require("crypto");
         const hashOTP = (otp) => crypto.createHash("sha256").update(otp).digest("hex");
 
         const updateResult = await OTP.findOneAndUpdate(
@@ -127,7 +127,7 @@ async function runTests() {
 
         // Clean up
         console.log("\nCleaning up test data...");
-        await User.deleteOne({ email: testEmail });
+        await Employer.deleteOne({ email: testEmail });
         await OTP.deleteMany({ email: testEmail });
         console.log("Test data removed.");
 

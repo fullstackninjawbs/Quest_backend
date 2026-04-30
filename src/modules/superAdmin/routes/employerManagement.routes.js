@@ -1,11 +1,11 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const {
+import {
     getEmployerProfile,
     updateEmployerProfile,
     deleteEmployerProfile,
-} = require("../controllers/employerManagement.controller");
-const superAdminAuth = require("../middleware/superAdmin.middleware");
+} from "../controllers/employerManagement.controller.js";
+import superAdminAuth from "../middleware/superAdmin.middleware.js";
 
 // Protect all routes below
 router.use(superAdminAuth);
@@ -14,4 +14,4 @@ router.get("/emp/:id/detail-profile", getEmployerProfile);
 router.put("/emp/:id/profile-edit", updateEmployerProfile);
 router.delete("/emp/:id/delete", deleteEmployerProfile);
 
-module.exports = router;
+export default router;

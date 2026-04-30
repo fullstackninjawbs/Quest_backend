@@ -1,8 +1,8 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const superAdminRoutes = require("../modules/superAdmin/routes");
-const employerRoutes = require("../modules/employer/routes");
-const testRoutes = require("./test.routes");
+import superAdminRoutes from "../modules/superAdmin/routes/index.js";
+import employerRoutes from "../modules/employer/routes/index.js";
+import testRoutes from "./test.routes.js";
 
 // 👑 Super Admin Module (Login, Dashboard, Stats)
 router.use("/superadmin", superAdminRoutes);
@@ -15,4 +15,4 @@ router.use("/test", testRoutes);
 // Legacy /auth and /admin endpoints are now removed or redirected by the blocks above
 
 
-module.exports = router;
+export default router;

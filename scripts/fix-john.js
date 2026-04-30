@@ -1,6 +1,6 @@
-const mongoose = require('mongoose');
-const Employer = require('../src/modules/employer/models/employer.model');
-const { MONGO_URI } = require('../src/config/env');
+import mongoose from 'mongoose';
+import Employer from '../src/modules/employer/models/employer.model.js';
+import { MONGO_URI } from '../src/config/env.js';
 
 async function resetJohnPassword() {
     try {

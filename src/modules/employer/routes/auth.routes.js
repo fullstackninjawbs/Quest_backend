@@ -1,6 +1,6 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const {
+import {
     signup,
     login,
     verifyOTP,
@@ -11,10 +11,10 @@ const {
     logout,
     getMe,
     changePassword
-} = require("../controllers/auth.controller");
-const employerAuth = require("../middleware/employer.middleware");
-const validate = require("../../../shared/middleware/validate.middleware");
-const employerValidator = require("../validators/employer.validator");
+} from "../controllers/auth.controller.js";
+import employerAuth from "../middleware/employer.middleware.js";
+import validate from "../../../shared/middleware/validate.middleware.js";
+import * as employerValidator from "../validators/employer.validator.js";
 
 // Public auth routes
 router.post("/signup", validate(employerValidator.registerSchema), signup);
@@ -31,4 +31,4 @@ router.post("/logout", logout);
 router.get("/me", getMe);
 router.post("/change-password", changePassword);
 
-module.exports = router;
+export default router;

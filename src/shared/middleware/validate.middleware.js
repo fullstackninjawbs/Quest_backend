@@ -1,4 +1,4 @@
-const AppError = require("../../utils/AppError");
+import AppError from "../../utils/AppError.js";
 
 /**
  * Validates req.body against a Joi schema.
@@ -13,4 +13,4 @@ const validateBody = (schema) => (req, res, next) => {
     next();
 };
 
-module.exports = validateBody;
+export default validateBody;

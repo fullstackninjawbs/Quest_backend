@@ -1,10 +1,10 @@
-const authService = require("../../../services/auth.service");
-const catchAsync = require("../../../utils/catchAsync");
+import * as authService from "../../../services/auth.service.js";
+import catchAsync from "../../../utils/catchAsync.js";
 
 // @desc    Employer Signup
 // @route   POST /api/v1/employer/auth/signup
 // @access  Public
-exports.signup = catchAsync(async (req, res, next) => {
+export const signup = catchAsync(async (req, res, next) => {
     // Inject the role for safety or handle it in service
     const signupData = { ...req.body, role: "employer" };
     const result = await authService.registerUser(signupData);
@@ -18,7 +18,7 @@ exports.signup = catchAsync(async (req, res, next) => {
 // @desc    Login Employer
 // @route   POST /api/v1/employer/auth/login
 // @access  Public
-exports.login = catchAsync(async (req, res, next) => {
+export const login = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
     const result = await authService.loginUser(email, password);
 
@@ -38,7 +38,7 @@ exports.login = catchAsync(async (req, res, next) => {
 
 // @desc    Verify OTP for Employer
 // @route   POST /api/v1/employer/auth/verify-otp
-exports.verifyOTP = catchAsync(async (req, res, next) => {
+export const verifyOTP = catchAsync(async (req, res, next) => {
     const { email, otp } = req.body;
     const result = await authService.verifyOTP(email, otp);
 
@@ -50,7 +50,7 @@ exports.verifyOTP = catchAsync(async (req, res, next) => {
 
 // @desc    Resend OTP for Employer
 // @route   POST /api/v1/employer/auth/resend-otp
-exports.resendOTP = catchAsync(async (req, res, next) => {
+export const resendOTP = catchAsync(async (req, res, next) => {
     const { email } = req.body;
     const result = await authService.resendOTP(email);
 
@@ -62,7 +62,7 @@ exports.resendOTP = catchAsync(async (req, res, next) => {
 
 // @desc    OTP Status for Employer
 // @route   POST /api/v1/employer/auth/otp-status
-exports.otpStatus = catchAsync(async (req, res, next) => {
+export const otpStatus = catchAsync(async (req, res, next) => {
     const { email } = req.body;
     const result = await authService.otpStatus(email);
 
@@ -74,7 +74,7 @@ exports.otpStatus = catchAsync(async (req, res, next) => {
 
 // @desc    Forgot Password for Employer
 // @route   POST /api/v1/employer/auth/forgot-password
-exports.forgotPassword = catchAsync(async (req, res, next) => {
+export const forgotPassword = catchAsync(async (req, res, next) => {
     const { email } = req.body;
     const result = await authService.forgotPassword(email);
 
@@ -86,7 +86,7 @@ exports.forgotPassword = catchAsync(async (req, res, next) => {
 
 // @desc    Reset Password for Employer
 // @route   POST /api/v1/employer/auth/reset-password
-exports.resetPassword = catchAsync(async (req, res, next) => {
+export const resetPassword = catchAsync(async (req, res, next) => {
     const { email, otp, password } = req.body;
     const result = await authService.resetPassword(email, otp, password);
 
@@ -98,7 +98,7 @@ exports.resetPassword = catchAsync(async (req, res, next) => {
 
 // @desc    Logout Employer
 // @route   POST /api/v1/employer/auth/logout
-exports.logout = catchAsync(async (req, res, next) => {
+export const logout = catchAsync(async (req, res, next) => {
     res.status(200).json({
         success: true,
         message: "Employer logged out successfully.",
@@ -107,7 +107,7 @@ exports.logout = catchAsync(async (req, res, next) => {
 
 // @desc    Get Current Employer
 // @route   GET /api/v1/employer/auth/me
-exports.getMe = catchAsync(async (req, res, next) => {
+export const getMe = catchAsync(async (req, res, next) => {
     res.status(200).json({
         success: true,
         user: req.user,
@@ -116,7 +116,7 @@ exports.getMe = catchAsync(async (req, res, next) => {
 
 // @desc    Change Password for Employer
 // @route   POST /api/v1/employer/auth/change-password
-exports.changePassword = catchAsync(async (req, res, next) => {
+export const changePassword = catchAsync(async (req, res, next) => {
     const result = await authService.changePassword(
         req.user._id,
         "employer",

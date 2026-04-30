@@ -1,6 +1,11 @@
-const mongoose = require("mongoose");
-const fs = require("fs");
-const path = require("path");
+import mongoose from "mongoose";
+import fs from "fs";
+import path from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 const connectDB = async () => {
     const useAWS = process.env.USE_AWS_DB === "true";
@@ -36,4 +41,4 @@ const connectDB = async () => {
     }
 };
 
-module.exports = connectDB;
+export default connectDB;

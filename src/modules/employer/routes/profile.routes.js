@@ -1,11 +1,11 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
-const {
+import {
     getEmployerProfile,
     updateEmployerProfile,
     deleteOwnProfile
-} = require("../controllers/profile.controller");
-const employerAuth = require("../middleware/employer.middleware");
+} from "../controllers/profile.controller.js";
+import employerAuth from "../middleware/employer.middleware.js";
 
 // Protect all routes
 router.use(employerAuth);
@@ -14,4 +14,4 @@ router.get("/profile", getEmployerProfile);
 router.patch("/profile-edit", updateEmployerProfile);
 router.delete("/profile-delete", deleteOwnProfile);
 
-module.exports = router;
+export default router;

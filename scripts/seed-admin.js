@@ -1,7 +1,12 @@
-const mongoose = require("mongoose");
-const dotenv = require("dotenv");
-const path = require("path");
-const SuperAdmin = require("../src/modules/superAdmin/models/superAdmin.model");
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import path from "path";
+import SuperAdmin from "../src/modules/superAdmin/models/superAdmin.model.js";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 // Load env vars
 dotenv.config({ path: path.join(__dirname, "../.env") });

@@ -1,5 +1,5 @@
-const mongoose = require("mongoose");
-const bcrypt = require("bcryptjs");
+import mongoose from "mongoose";
+import bcrypt from "bcryptjs";
 
 const superAdminSchema = new mongoose.Schema(
     {
@@ -62,4 +62,5 @@ superAdminSchema.methods.comparePassword = async function (candidatePassword) {
     return bcrypt.compare(candidatePassword, this.password);
 };
 
-module.exports = mongoose.model("SuperAdmin", superAdminSchema);
+const SuperAdmin = mongoose.model("SuperAdmin", superAdminSchema);
+export default SuperAdmin;

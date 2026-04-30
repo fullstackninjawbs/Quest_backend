@@ -1,10 +1,15 @@
-const mongoose = require("mongoose");
-const dotenv = require("dotenv");
-const path = require("path");
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
 
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
-const SuperAdmin = require("../src/modules/superAdmin/models/superAdmin.model");
+import SuperAdmin from "../src/modules/superAdmin/models/superAdmin.model.js";
 
 const resetPass = async () => {
     try {

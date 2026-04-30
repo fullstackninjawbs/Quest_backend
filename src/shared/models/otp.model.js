@@ -1,4 +1,4 @@
-const mongoose = require("mongoose");
+import mongoose from "mongoose";
 
 const otpSchema = new mongoose.Schema(
     {
@@ -32,4 +32,5 @@ const otpSchema = new mongoose.Schema(
 // Index to automatically delete expired OTPs
 otpSchema.index({ expires_at: 1 }, { expireAfterSeconds: 0 });
 
-module.exports = mongoose.model("OTP", otpSchema);
+const OTP = mongoose.model("OTP", otpSchema);
+export default OTP;

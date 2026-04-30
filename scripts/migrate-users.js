@@ -1,7 +1,16 @@
-const mongoose = require("mongoose");
-require("dotenv").config({ path: require('path').resolve(__dirname, '../.env') });
-const SuperAdmin = require("../src/models/superAdmin.model");
-const Employer = require("../src/models/employer.model");
+import mongoose from "mongoose";
+import dotenv from "dotenv";
+import path from "path";
+import { fileURLToPath } from "url";
+import { dirname } from "path";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
+
+import SuperAdmin from "../src/modules/superAdmin/models/superAdmin.model.js";
+import Employer from "../src/modules/employer/models/employer.model.js";
 
 // Use MONGO_URI from .env
 const MONGO_URI = process.env.MONGO_URI;

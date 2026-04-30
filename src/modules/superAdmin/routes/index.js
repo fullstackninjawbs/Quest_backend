@@ -1,9 +1,9 @@
-const express = require("express");
+import express from "express";
 const router = express.Router();
 
-const authRoutes = require("./auth.routes");
-const dashboardRoutes = require("./dashboard.routes");
-const employerManagementRoutes = require("./employerManagement.routes");
+import authRoutes from "./auth.routes.js";
+import dashboardRoutes from "./dashboard.routes.js";
+import employerManagementRoutes from "./employerManagement.routes.js";
 
 // Super Admin Authentication
 // Endpoints: /api/v1/super-admin/signup, /api/v1/super-admin/login, etc.
@@ -17,4 +17,4 @@ router.use("/", dashboardRoutes);
 // Endpoints: GET/PUT/DELETE /api/v1/super-admin/emp/:id/...
 router.use("/", employerManagementRoutes);
 
-module.exports = router;
+export default router;
