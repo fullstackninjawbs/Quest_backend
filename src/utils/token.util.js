@@ -19,3 +19,15 @@ export const generateOTP = () =>
  */
 export const hashOTP = (otp) =>
     crypto.createHash("sha256").update(otp).digest("hex");
+
+/**
+ * Generate a secure random token for password reset links.
+ */
+export const generateResetToken = () =>
+    crypto.randomBytes(32).toString("hex");
+
+/**
+ * Hash a reset token using SHA-256.
+ */
+export const hashResetToken = (token) =>
+    crypto.createHash("sha256").update(token).digest("hex");

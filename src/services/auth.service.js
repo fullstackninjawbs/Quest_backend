@@ -1,10 +1,11 @@
 import SuperAdmin from "../modules/superAdmin/models/superAdmin.model.js";
 import Employer from "../modules/employer/models/employer.model.js";
 import OTP from "../shared/models/otp.model.js";
-import { generateToken, generateOTP, hashOTP } from "../utils/token.util.js";
+import { generateToken, generateOTP, hashOTP, generateResetToken, hashResetToken } from "../utils/token.util.js";
 import AppError from "../utils/AppError.js";
-import { sendEmail } from "./email.service.js";
+import { sendEmail, sendResetPasswordEmail } from "./email.service.js";
 import * as emailTemplates from "../utils/emailTemplates.js";
+import { CLIENT_URL } from "../config/env.js";
 
 /**
  * Helper to get the correct model based on role
@@ -365,12 +366,83 @@ const changePassword = async (userId, role, passwords) => {
     };
 };
 
+/**
+ * Forgot Password with Link
+ */
+const forgotPasswordWithLink = async (email) => {
+    const result = await findUserAnywhere(email);
+    
+    // Generic success message even if user not found (security)
+    if (!result) {
+        return { message: "If a user with that email exists, a reset link has been sent." };
+    }
+
+    const { user, role } = result;
+    const token = generateResetToken();
+    const hashedToken = hashResetToken(token);
+    const expiry = new Date(Date.now() + 15 * 60 * 1000); // 15 minutes
+
+    const Model = getModelByRole(role);
+    await Model.findByIdAndUpdate(user._id, {
+        resetToken: hashedToken,
+        resetTokenExpiry: expiry,
+    });
+
+    const resetLink = `${CLIENT_URL}/reset-password?token=${token}`;
+    
+    await sendResetPasswordEmail(email, resetLink, user.first_name);
+
+    return {
+        message: "If a user with that email exists, a reset link has been sent.",
+    };
+};
+
+/**
+ * Reset Password with Token
+ */
+const resetPasswordWithToken = async (token, newPassword) => {
+    const hashedToken = hashResetToken(token);
+
+    // Search for user with this token across both collections
+    let user = await Employer.findOne({
+        resetToken: hashedToken,
+        resetTokenExpiry: { $gt: Date.now() },
+    });
+    
+    let role = "employer";
+
+    if (!user) {
+        user = await SuperAdmin.findOne({
+            resetToken: hashedToken,
+            resetTokenExpiry: { $gt: Date.now() },
+        });
+        role = "super_admin";
+    }
+
+    if (!user) {
+        throw new AppError("Invalid or expired reset token", 400);
+    }
+
+    user.password = newPassword;
+    user.resetToken = undefined;
+    user.resetTokenExpiry = undefined;
+    user.isEmailVerified = true;
+    user.markModified("password");
+    await user.save();
+
+    return {
+        message: "Password reset successfully. You can now log in with your new password.",
+    };
+};
+
 export {
     registerUser,
     verifyOTP,
     loginUser,
     forgotPassword,
     resetPassword,
+    forgotPasswordWithLink,
+    resetPasswordWithToken,
     resendOTP,
     otpStatus,
     changePassword,

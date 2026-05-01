@@ -73,6 +73,8 @@ const employerSchema = new mongoose.Schema(
             type: Number,
             default: 0,
         },
+        resetToken: String,
+        resetTokenExpiry: Date,
     },
     { timestamps: true }
 );

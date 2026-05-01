@@ -7,6 +7,8 @@ import {
     otpStatus,
     forgotPassword,
     resetPassword,
+    forgotPasswordLink,
+    resetPasswordLink,
     logout,
     getMe,
     changePassword
@@ -22,6 +24,8 @@ router.post("/resend", validate(adminValidator.forgotPasswordSchema), resendOTP)
 router.post("/otp", validate(adminValidator.forgotPasswordSchema), otpStatus);
 router.post("/forgot", validate(adminValidator.forgotPasswordSchema), forgotPassword);
 router.post("/reset", validate(adminValidator.resetPasswordSchema), resetPassword);
+router.post("/forgot-password-link", validate(adminValidator.forgotPasswordSchema), forgotPasswordLink);
+router.post("/reset-password-link", validate(adminValidator.resetPasswordLinkSchema), resetPasswordLink);
 
 // Private auth routes
 router.use(superAdminAuth);

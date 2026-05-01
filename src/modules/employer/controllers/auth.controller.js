@@ -96,6 +96,30 @@ export const resetPassword = catchAsync(async (req, res, next) => {
     });
 });
 
+// @desc    Forgot Password with Link for Employer
+// @route   POST /api/v1/employer/auth/forgot-password-link
+export const forgotPasswordLink = catchAsync(async (req, res, next) => {
+    const { email } = req.body;
+    const result = await authService.forgotPasswordWithLink(email);
+
+    res.status(200).json({
+        success: true,
+        ...result,
+    });
+});
+
+// @desc    Reset Password with Link for Employer
+// @route   POST /api/v1/employer/auth/reset-password-link
+export const resetPasswordLink = catchAsync(async (req, res, next) => {
+    const { token, password } = req.body;
+    const result = await authService.resetPasswordWithToken(token, password);
+
+    res.status(200).json({
+        success: true,
+        ...result,
+    });
+});
+
 // @desc    Logout Employer
 // @route   POST /api/v1/employer/auth/logout
 export const logout = catchAsync(async (req, res, next) => {

@@ -46,6 +46,8 @@ const superAdminSchema = new mongoose.Schema(
             default: false,
         },
         profile_pic: String,
+        resetToken: String,
+        resetTokenExpiry: Date,
     },
     { timestamps: true }
 );

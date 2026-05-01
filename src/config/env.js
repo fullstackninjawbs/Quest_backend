@@ -15,3 +15,9 @@ export const MONGO_URI = process.env.MONGO_URI;
 export const JWT_SECRET = process.env.JWT_SECRET;
 export const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "7d";
 export const FRONTEND_URL = process.env.FRONTEND_URL || "http://localhost:3000";
+export const CLIENT_URL = process.env.CLIENT_URL || FRONTEND_URL;
+
+export const SMTP_HOST = process.env.SMTP_HOST;
+export const SMTP_PORT = process.env.SMTP_PORT;
+export const SMTP_USER = process.env.SMTP_USER;
+export const SMTP_PASS = process.env.SMTP_PASS;

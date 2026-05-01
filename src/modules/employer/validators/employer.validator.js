@@ -38,3 +38,8 @@ export const resetPasswordSchema = Joi.object({
     otp: Joi.string().length(6).required(),
     password: Joi.string().min(8).required(),
 });
+
+export const resetPasswordLinkSchema = Joi.object({
+    token: Joi.string().required(),
+    password: Joi.string().min(8).required(),
+});
