@@ -205,3 +205,26 @@ export const addEmployeeCSV = catchAsync(async (req, res, next) => {
         errors: errors.length > 0 ? errors : null
     });
 });
+
+/**
+ * @desc    Delete a single employee
+ * @route   DELETE /api/v1/employer/employee/:id
+ * @access  Private (Employer)
+ */
+export const deleteEmployee = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+
+    const employee = await Employee.findOneAndDelete({
+        _id: id,
+        employer_id: req.user._id // Ensure they only delete their own employees
+    });
+
+    if (!employee) {
+        return next(new AppError("Employee not found or you don't have permission to delete.", 404));
+    }
+
+    res.status(200).json({
+        success: true,
+        message: "Employee deleted successfully."
+    });
+});
