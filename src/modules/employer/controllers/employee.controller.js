@@ -72,7 +72,11 @@ export const addEmployee = catchAsync(async (req, res, next) => {
  * @access  Private (Employer)
  */
 export const getEmployees = catchAsync(async (req, res, next) => {
-    const { search, type, status } = req.query;
+    const { search, type, status, page, limit } = req.query;
+
+    const pageNumber = parseInt(page) || 1;
+    const limitNumber = parseInt(limit) || 10;
+    const skip = (pageNumber - 1) * limitNumber;
 
     // Build Query
     const query = { employer_id: req.user._id };
@@ -92,14 +96,26 @@ export const getEmployees = catchAsync(async (req, res, next) => {
         ];
     }
 
-    const employees = await Employee.find(query).sort("-createdAt");
+    const totalEmployees = await Employee.countDocuments(query);
+    const employees = await Employee.find(query).sort("-createdAt").skip(skip).limit(limitNumber);
 
     res.status(200).json({
         success: true,
         message: "Employees fetched successfully.",
         count: employees.length,
+        total: totalEmployees,
+        page: pageNumber,
+        totalPages: Math.ceil(totalEmployees / limitNumber),
         data: employees
     });
+});
+
+export const uploadProgressMap = new Map();
+
+export const getUploadProgress = catchAsync(async (req, res, next) => {
+    const { uploadId } = req.params;
+    const progress = uploadProgressMap.get(uploadId) || 0;
+    res.status(200).json({ success: true, progress });
 });
 
 /**
@@ -116,24 +132,43 @@ export const addEmployeeCSV = catchAsync(async (req, res, next) => {
     }
 
     const filePath = req.file.path;
-    const employeesToInsert = [];
-    const errors = [];
-    let rowNumber = 1; // Start counting rows (1 is usually header)
+    const uploadId = req.query.uploadId || req.body.uploadId;
+    if (uploadId) uploadProgressMap.set(uploadId, 10); // initial parsing state
 
-    // Helper to cleanup file
+    const bulkOps = [];
+    const errors = [];
+    let rowNumber = 1;
+
     const cleanup = () => {
         if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
         }
+        if (uploadId) {
+            // keep it 100 for a short while, then delete? 
+            // no need to delete immediately, it will be handled by the FE completing.
+            // Or delete after 1 minute.
+            setTimeout(() => uploadProgressMap.delete(uploadId), 60000);
+        }
     };
 
-    // Step 4: Stream and Parse CSV
-    const stream = fs.createReadStream(filePath).pipe(csv());
+    const fileSize = fs.statSync(filePath).size;
+    let processedBytes = 0;
+    const readStream = fs.createReadStream(filePath);
+
+    readStream.on('data', (chunk) => {
+        processedBytes += chunk.length;
+        if (uploadId) {
+            // parsing takes up to 40% (progress from 10 to 50)
+            const parsingProgress = Math.floor((processedBytes / fileSize) * 40);
+            uploadProgressMap.set(uploadId, 10 + parsingProgress);
+        }
+    });
+
+    const stream = readStream.pipe(csv());
 
     for await (const row of stream) {
         rowNumber++;
 
-        // Basic Validation (Step 4)
         const firstName = row.first_name || row.FirstName;
         const lastName = row.last_name || row.LastName;
         const email = row.email || row.Email;
@@ -147,50 +182,68 @@ export const addEmployeeCSV = catchAsync(async (req, res, next) => {
             continue;
         }
 
-        // Logic: Use Short ID if missing (Step 4 & 5)
         const employeeId = row.employee_id || row.EmployeeId || crypto.randomBytes(4).toString("hex").toUpperCase();
 
-        employeesToInsert.push({
-            employer_id: req.user._id,
-            employee_id: employeeId,
-            first_name: firstName.trim(),
-            last_name: lastName.trim(),
-            email: email.toLowerCase().trim(),
-            phone: row.phone || row.Phone || "-",
-            license_number: row.license_number || row.License || "-",
-            type: (row.type || "DOT").toUpperCase(),
-            status: (row.status || "Active"),
-            zip_code: row.zip_code || row.Zip || "-",
-            state: row.state || row.State || "-",
-            der_name: row.der_name || "-",
-            der_phone: row.der_phone || "-"
+        bulkOps.push({
+            updateOne: {
+                filter: { employer_id: req.user._id, email: email.toLowerCase().trim() },
+                update: {
+                    $set: {
+                        first_name: firstName.trim(),
+                        last_name: lastName.trim(),
+                        phone: row.phone || row.Phone || "-",
+                        license_number: row.license_number || row.License || "-",
+                        type: (row.type || "DOT").toUpperCase(),
+                        status: (row.status || "Active"),
+                        zip_code: row.zip_code || row.Zip || "-",
+                        state: row.state || row.State || "-",
+                        der_name: row.der_name || "-",
+                        der_phone: row.der_phone || "-"
+                    },
+                    $setOnInsert: {
+                        employee_id: employeeId
+                    }
+                },
+                upsert: true
+            }
         });
     }
 
-    // Step 5: Bulk Insert
     let successCount = 0;
-    if (employeesToInsert.length > 0) {
-        try {
-            // ordered: false allows continuing even if some rows fail (e.g. duplicates)
-            const result = await Employee.insertMany(employeesToInsert, { ordered: false });
-            successCount = result.length;
-        } catch (err) {
-            // Handle duplicate errors from MongoDB
-            if (err.writeErrors) {
-                successCount = err.nInserted;
-                err.writeErrors.forEach(writeError => {
-                    errors.push({
-                        row: "N/A (Duplicate or Validation)",
-                        error: writeError.errmsg,
-                        data: writeError.op.email
+    if (bulkOps.length > 0) {
+        const batchSize = 100;
+        let processedOps = 0;
+
+        for (let i = 0; i < bulkOps.length; i += batchSize) {
+            const batch = bulkOps.slice(i, i + batchSize);
+            try {
+                const result = await Employee.bulkWrite(batch, { ordered: false });
+                successCount += (result.upsertedCount || 0) + (result.modifiedCount || 0) + (result.insertedCount || 0) + (result.matchedCount || 0);
+            } catch (err) {
+                if (err.writeErrors) {
+                    successCount += (batch.length - err.writeErrors.length);
+                    err.writeErrors.forEach(writeError => {
+                        errors.push({
+                            row: "N/A (Bulk Write Error)",
+                            error: writeError.errmsg,
+                            data: 'Check payload/validation'
+                        });
                     });
-                });
-            } else {
-                cleanup();
-                return next(new AppError("Bulk insert failed: " + err.message, 500));
+                } else {
+                    cleanup();
+                    return next(new AppError("Bulk write failed: " + err.message, 500));
+                }
+            }
+
+            processedOps += batch.length;
+            if (uploadId) {
+                // writing takes up to 50% (progress from 50 to 100)
+                const writeProgress = Math.floor((processedOps / bulkOps.length) * 50);
+                uploadProgressMap.set(uploadId, 50 + writeProgress);
             }
         }
     }
+
 
     cleanup(); // Step 7: Cleanup
 

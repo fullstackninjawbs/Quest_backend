@@ -2,7 +2,7 @@ import express from "express";
 import multer from "multer";
 import path from "path";
 import fs from "fs";
-import { addEmployee, getEmployees, addEmployeeCSV, deleteEmployee } from "../controllers/employee.controller.js";
+import { addEmployee, getEmployees, addEmployeeCSV, deleteEmployee, getUploadProgress } from "../controllers/employee.controller.js";
 import employerAuth from "../middleware/employer.middleware.js";
 
 const router = express.Router();
@@ -48,5 +48,6 @@ router.delete("/:id", deleteEmployee);
 
 // Bulk CSV Route (Step 3)
 router.post("/add-csv", upload.single("file"), addEmployeeCSV);
+router.get("/upload-progress/:uploadId", getUploadProgress);
 
 export default router;
