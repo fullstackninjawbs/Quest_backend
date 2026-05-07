@@ -72,22 +72,16 @@ export const addEmployee = catchAsync(async (req, res, next) => {
  * @access  Private (Employer)
  */
 export const getEmployees = catchAsync(async (req, res, next) => {
+
     const { search, type, status, page, limit } = req.query;
 
     const pageNumber = parseInt(page) || 1;
     const limitNumber = parseInt(limit) || 10;
     const skip = (pageNumber - 1) * limitNumber;
 
-    // Build Query
-    const query = { employer_id: req.user._id };
-
-    // Filtering
-    if (type && type !== 'ALL') query.type = type;
-    if (status && status !== 'ALL') query.status = status;
-
-    // Searching (Name, Email, or License)
+    const searchFilter = {};
     if (search) {
-        query.$or = [
+        searchFilter.$or = [
             { first_name: { $regex: search, $options: "i" } },
             { last_name: { $regex: search, $options: "i" } },
             { email: { $regex: search, $options: "i" } },
@@ -96,8 +90,38 @@ export const getEmployees = catchAsync(async (req, res, next) => {
         ];
     }
 
+    // Build Query
+    const query = { employer_id: req.user._id, ...searchFilter };
+
+    // Filtering
+    if (type && type !== 'ALL') query.type = type;
+    if (status && status !== 'ALL') query.status = status;
+
     const totalEmployees = await Employee.countDocuments(query);
     const employees = await Employee.find(query).sort("-createdAt").skip(skip).limit(limitNumber);
+
+    // Faceted Filter Counts
+    const baseQuery = { employer_id: req.user._id, ...searchFilter };
+
+    // Type counts (Status applied)
+    const typeQuery = { ...baseQuery };
+    if (status && status !== 'ALL') typeQuery.status = status;
+
+    // Status counts (Type applied)
+    const statusQuery = { ...baseQuery };
+    if (type && type !== 'ALL') statusQuery.type = type;
+
+    const [
+        typeAllCount, typeDotCount, typeNonDotCount,
+        statusAllCount, statusActiveCount, statusTerminatedCount
+    ] = await Promise.all([
+        Employee.countDocuments(typeQuery),
+        Employee.countDocuments({ ...typeQuery, type: 'DOT' }),
+        Employee.countDocuments({ ...typeQuery, type: 'NON-DOT' }),
+        Employee.countDocuments(statusQuery),
+        Employee.countDocuments({ ...statusQuery, status: 'Active' }),
+        Employee.countDocuments({ ...statusQuery, status: 'Terminated' })
+    ]);
 
     res.status(200).json({
         success: true,
@@ -106,6 +130,18 @@ export const getEmployees = catchAsync(async (req, res, next) => {
         total: totalEmployees,
         page: pageNumber,
         totalPages: Math.ceil(totalEmployees / limitNumber),
+        filterCounts: {
+            type: {
+                ALL: typeAllCount,
+                DOT: typeDotCount,
+                'NON-DOT': typeNonDotCount
+            },
+            status: {
+                ALL: statusAllCount,
+                ACTIVE: statusActiveCount,
+                TERMINATED: statusTerminatedCount
+            }
+        },
         data: employees
     });
 });
@@ -250,5 +286,80 @@ export const deleteEmployee = catchAsync(async (req, res, next) => {
     res.status(200).json({
         success: true,
         message: "Employee deleted successfully."
+    });
+});
+
+/**
+ * @desc    Get a single employee by ID
+ * @route   GET /api/v1/employer/employee/:id
+ * @access  Private (Employer)
+ */
+export const getEmployeeById = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+
+    const employee = await Employee.findOne({
+        _id: id,
+        employer_id: req.user._id
+    });
+
+    if (!employee) {
+        return next(new AppError("Employee not found.", 404));
+    }
+
+    res.status(200).json({
+        success: true,
+        data: employee
+    });
+});
+
+/**
+ * @desc    Update a single employee
+ * @route   PUT /api/v1/employer/employee/:id
+ * @access  Private (Employer)
+ */
+export const updateEmployee = catchAsync(async (req, res, next) => {
+    const { id } = req.params;
+
+    // Check if email is being updated to an existing one
+    if (req.body.email) {
+        const existingEmail = await Employee.findOne({
+            email: req.body.email.toLowerCase().trim(),
+            employer_id: req.user._id,
+            _id: { $ne: id }
+        });
+        if (existingEmail) {
+            return next(new AppError("Email is already used by another employee.", 400));
+        }
+    }
+
+    const employee = await Employee.findOneAndUpdate(
+        { _id: id, employer_id: req.user._id },
+        {
+            $set: {
+                first_name: req.body.first_name,
+                last_name: req.body.last_name,
+                email: req.body.email?.toLowerCase().trim(),
+                phone: req.body.phone,
+                license_number: req.body.license_number,
+                dob: req.body.dob,
+                zip_code: req.body.zip_code,
+                state: req.body.state,
+                der_name: req.body.der_name,
+                der_phone: req.body.der_phone,
+                type: req.body.type,
+                status: req.body.status
+            }
+        },
+        { new: true, runValidators: true }
+    );
+
+    if (!employee) {
+        return next(new AppError("Employee not found or you don't have permission to update.", 404));
+    }
+
+    res.status(200).json({
+        success: true,
+        message: "Employee updated successfully.",
+        data: employee
     });
 });
