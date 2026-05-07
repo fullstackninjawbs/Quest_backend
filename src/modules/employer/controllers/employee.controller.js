@@ -188,7 +188,7 @@ export const addEmployeeCSV = catchAsync(async (req, res, next) => {
             updateOne: {
                 filter: { employer_id: req.user._id, email: email.toLowerCase().trim() },
                 update: {
-                    $set: {
+                    $setOnInsert: {
                         first_name: firstName.trim(),
                         last_name: lastName.trim(),
                         phone: row.phone || row.Phone || "-",
@@ -198,9 +198,7 @@ export const addEmployeeCSV = catchAsync(async (req, res, next) => {
                         zip_code: row.zip_code || row.Zip || "-",
                         state: row.state || row.State || "-",
                         der_name: row.der_name || "-",
-                        der_phone: row.der_phone || "-"
-                    },
-                    $setOnInsert: {
+                        der_phone: row.der_phone || "-",
                         employee_id: employeeId
                     }
                 },
@@ -210,6 +208,7 @@ export const addEmployeeCSV = catchAsync(async (req, res, next) => {
     }
 
     let successCount = 0;
+    let duplicateCount = 0;
     if (bulkOps.length > 0) {
         const batchSize = 100;
         let processedOps = 0;
@@ -218,7 +217,8 @@ export const addEmployeeCSV = catchAsync(async (req, res, next) => {
             const batch = bulkOps.slice(i, i + batchSize);
             try {
                 const result = await Employee.bulkWrite(batch, { ordered: false });
-                successCount += (result.upsertedCount || 0) + (result.modifiedCount || 0) + (result.insertedCount || 0) + (result.matchedCount || 0);
+                successCount += (result.upsertedCount || 0) + (result.insertedCount || 0);
+                duplicateCount += (result.matchedCount || 0);
             } catch (err) {
                 if (err.writeErrors) {
                     successCount += (batch.length - err.writeErrors.length);
@@ -253,6 +253,7 @@ export const addEmployeeCSV = catchAsync(async (req, res, next) => {
         summary: {
             totalProcessed: rowNumber - 1,
             successCount,
+            duplicateCount,
             errorCount: errors.length,
         },
         errors: errors.length > 0 ? errors : null
