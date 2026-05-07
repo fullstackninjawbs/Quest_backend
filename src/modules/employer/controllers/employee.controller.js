@@ -110,13 +110,7 @@ export const getEmployees = catchAsync(async (req, res, next) => {
     });
 });
 
-export const uploadProgressMap = new Map();
 
-export const getUploadProgress = catchAsync(async (req, res, next) => {
-    const { uploadId } = req.params;
-    const progress = uploadProgressMap.get(uploadId) || 0;
-    res.status(200).json({ success: true, progress });
-});
 
 /**
  * @desc    Bulk Add Employees via CSV
@@ -132,8 +126,6 @@ export const addEmployeeCSV = catchAsync(async (req, res, next) => {
     }
 
     const filePath = req.file.path;
-    const uploadId = req.query.uploadId || req.body.uploadId;
-    if (uploadId) uploadProgressMap.set(uploadId, 10); // initial parsing state
 
     const bulkOps = [];
     const errors = [];
@@ -143,26 +135,9 @@ export const addEmployeeCSV = catchAsync(async (req, res, next) => {
         if (fs.existsSync(filePath)) {
             fs.unlinkSync(filePath);
         }
-        if (uploadId) {
-            // keep it 100 for a short while, then delete? 
-            // no need to delete immediately, it will be handled by the FE completing.
-            // Or delete after 1 minute.
-            setTimeout(() => uploadProgressMap.delete(uploadId), 60000);
-        }
     };
 
-    const fileSize = fs.statSync(filePath).size;
-    let processedBytes = 0;
     const readStream = fs.createReadStream(filePath);
-
-    readStream.on('data', (chunk) => {
-        processedBytes += chunk.length;
-        if (uploadId) {
-            // parsing takes up to 40% (progress from 10 to 50)
-            const parsingProgress = Math.floor((processedBytes / fileSize) * 40);
-            uploadProgressMap.set(uploadId, 10 + parsingProgress);
-        }
-    });
 
     const stream = readStream.pipe(csv());
 
@@ -236,11 +211,6 @@ export const addEmployeeCSV = catchAsync(async (req, res, next) => {
             }
 
             processedOps += batch.length;
-            if (uploadId) {
-                // writing takes up to 50% (progress from 50 to 100)
-                const writeProgress = Math.floor((processedOps / bulkOps.length) * 50);
-                uploadProgressMap.set(uploadId, 50 + writeProgress);
-            }
         }
     }
 
