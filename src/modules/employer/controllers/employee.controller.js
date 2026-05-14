@@ -113,14 +113,14 @@ export const getEmployees = catchAsync(async (req, res, next) => {
 
     const [
         typeAllCount, typeDotCount, typeNonDotCount,
-        statusAllCount, statusActiveCount, statusTerminatedCount
+        statusAllCount, statusActiveCount, statusInactiveCount
     ] = await Promise.all([
         Employee.countDocuments(typeQuery),
         Employee.countDocuments({ ...typeQuery, type: 'DOT' }),
         Employee.countDocuments({ ...typeQuery, type: 'NON-DOT' }),
         Employee.countDocuments(statusQuery),
         Employee.countDocuments({ ...statusQuery, status: 'Active' }),
-        Employee.countDocuments({ ...statusQuery, status: 'Terminated' })
+        Employee.countDocuments({ ...statusQuery, status: 'Inactive' })
     ]);
 
     res.status(200).json({
@@ -139,7 +139,7 @@ export const getEmployees = catchAsync(async (req, res, next) => {
             status: {
                 ALL: statusAllCount,
                 ACTIVE: statusActiveCount,
-                TERMINATED: statusTerminatedCount
+                INACTIVE: statusInactiveCount
             }
         },
         data: employees
