@@ -3,11 +3,15 @@ import fs from "fs";
 import path from "path";
 import { fileURLToPath } from "url";
 import { dirname } from "path";
+import dns from "dns";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
 
 const connectDB = async () => {
+    // Set trusted DNS servers to fix querySrv ECONNREFUSED by bypassing router DNS resolution limits for SRV records
+    dns.setServers(["8.8.8.8", "8.8.4.4", "1.1.1.1"]);
+
     const useAWS = process.env.USE_AWS_DB === "true";
 
     try {

@@ -88,7 +88,6 @@ const collectionSiteSchema = new mongoose.Schema(
 
 // Indexes
 collectionSiteSchema.index({ "address.zip": 1 });
-collectionSiteSchema.index({ siteCode: 1 });
 collectionSiteSchema.index({ "address.city": 1 });
 
 const CollectionSite = mongoose.model("CollectionSite", collectionSiteSchema);

@@ -81,12 +81,31 @@ export const getEmployees = catchAsync(async (req, res, next) => {
 
     const searchFilter = {};
     if (search) {
+        const cleanSearch = search.trim();
         searchFilter.$or = [
-            { first_name: { $regex: search, $options: "i" } },
-            { last_name: { $regex: search, $options: "i" } },
-            { email: { $regex: search, $options: "i" } },
-            { license_number: { $regex: search, $options: "i" } },
-            { employee_id: { $regex: search, $options: "i" } }
+            { first_name: { $regex: cleanSearch, $options: "i" } },
+            { last_name: { $regex: cleanSearch, $options: "i" } },
+            { email: { $regex: cleanSearch, $options: "i" } },
+            { license_number: { $regex: cleanSearch, $options: "i" } },
+            { employee_id: { $regex: cleanSearch, $options: "i" } },
+            {
+                $expr: {
+                    $regexMatch: {
+                        input: { $concat: ["$first_name", " ", "$last_name"] },
+                        regex: cleanSearch,
+                        options: "i"
+                    }
+                }
+            },
+            {
+                $expr: {
+                    $regexMatch: {
+                        input: { $concat: ["$last_name", " ", "$first_name"] },
+                        regex: cleanSearch,
+                        options: "i"
+                    }
+                }
+            }
         ];
     }
 
