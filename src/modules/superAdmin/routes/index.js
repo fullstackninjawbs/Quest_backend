@@ -1,10 +1,11 @@
 import express from "express";
-const router = express.Router();
-
 import authRoutes from "./auth.routes.js";
 import dashboardRoutes from "./dashboard.routes.js";
 import employerManagementRoutes from "./employerManagement.routes.js";
 import testConfigRoutes from "./testConfig.routes.js";
+import collectionSiteRoutes from "./collectionSite.routes.js";
+
+const router = express.Router();
 
 // Super Admin Authentication
 // Endpoints: /api/v1/super-admin/signup, /api/v1/super-admin/login, etc.
@@ -21,5 +22,9 @@ router.use("/", employerManagementRoutes);
 // Test Configuration (Dropdowns & Panels)
 // Endpoints: GET/POST/PUT/DELETE /api/v1/superadmin/config/...
 router.use("/config", testConfigRoutes);
+
+// Collection Sites Management
+// Endpoints: GET/POST /api/v1/superadmin/collection-sites/...
+router.use("/collection-sites", collectionSiteRoutes);
 
 export default router;
