@@ -5,6 +5,7 @@ import authRoutes from "./auth.routes.js";
 import profileRoutes from "./profile.routes.js";
 import employeeRoutes from "./employee.routes.js";
 import configRoutes from "./config.routes.js";
+import orderRoutes from "./order.routes.js";
 
 // Employer Authentication
 // Endpoints: /api/v1/employer/signup, /api/v1/employer/login, etc.
@@ -21,5 +22,8 @@ router.use("/employee", employeeRoutes);
 // Test Configuration Retrieval
 // Endpoints: /api/v1/employer/config/options, /api/v1/employer/config/panels
 router.use("/config", configRoutes);
+
+// Test Orders Flow Endpoints
+router.use("/orders", orderRoutes);
 
 export default router;
