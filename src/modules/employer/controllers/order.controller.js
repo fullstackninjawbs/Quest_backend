@@ -16,11 +16,14 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY || "sk_test_placeholder"
  * @access  Private (Employer Only)
  */
 export const previewOrder = catchAsync(async (req, res, next) => {
-    const { employeeId, panelId, siteId, testType, reasonForTest, collectionType } = req.body;
+    const { employeeId, panelId, siteId, testType, reasonForTest, collectionType, dotType } = req.body;
 
-    if (!employeeId || !panelId || !siteId || !testType || !reasonForTest || !collectionType) {
+    if (!employeeId || !panelId || !siteId || !reasonForTest || !collectionType) {
         return next(new AppError("Missing required preview parameters.", 400));
     }
+
+    const resolvedDotType = (dotType || req.body.dot_type || (testType === 'DOT' || testType === 'NON-DOT' ? testType : 'NON-DOT')).toUpperCase();
+    const resolvedTestType = (testType && testType !== 'DOT' && testType !== 'NON-DOT' ? testType : 'Drug Test');
 
     // 1. Resolve & Validate Employee
     const employee = await Employee.findOne({ _id: employeeId, employer_id: req.user._id });
@@ -62,7 +65,7 @@ export const previewOrder = catchAsync(async (req, res, next) => {
 
     // 4. Run Site Compatibility Checks
     const siteWarnings = [];
-    if (testType === "DOT" && !site.capabilities?.dotPhysicals && !site.capabilities?.electronicCCF) {
+    if (resolvedDotType === "DOT" && !site.capabilities?.dotPhysicals && !site.capabilities?.electronicCCF) {
         siteWarnings.push("Selected collection site may have limited DOT electronic CCF support.");
     }
     if (collectionType.toLowerCase().includes("hair") && !site.capabilities?.hairCollection) {
@@ -90,7 +93,8 @@ export const previewOrder = catchAsync(async (req, res, next) => {
                 address: site.address,
                 phone: site.phone
             },
-            dotType: testType,
+            dotType: resolvedDotType,
+            testType: resolvedTestType,
             warnings: siteWarnings,
             isReady: true
         }
@@ -110,6 +114,7 @@ export const createOrder = catchAsync(async (req, res, next) => {
         testType,
         reasonForTest,
         collectionType,
+        dotType,
         paymentMethodId
     } = req.body;
 
@@ -117,6 +122,9 @@ export const createOrder = catchAsync(async (req, res, next) => {
     if (!employeeId || !panelId || !siteId || !testType || !reasonForTest || !collectionType || !paymentMethodId) {
         return next(new AppError("Please provide all required parameters including paymentMethodId.", 400));
     }
+
+    const resolvedDotType = (dotType || req.body.dot_type || (testType === 'DOT' || testType === 'NON-DOT' ? testType : 'NON-DOT')).toUpperCase();
+    const resolvedTestType = (testType && testType !== 'DOT' && testType !== 'NON-DOT' ? testType : 'Drug Test');
 
     // 2. Fetch Employee details
     const employee = await Employee.findOne({ _id: employeeId, employer_id: req.user._id });
@@ -157,12 +165,12 @@ export const createOrder = catchAsync(async (req, res, next) => {
     }
 
     // 5. Resolve LabAccount from Employer Config
-    const isDOT = testType === "DOT";
+    const isDOT = resolvedDotType === "DOT";
     const employer = await Employer.findById(req.user._id);
     const labAccount = isDOT ? employer?.labAccountDOT : employer?.labAccountNonDOT;
 
     if (!labAccount) {
-        return next(new AppError(`No LabAccount mapping found for this employer under ${testType} order type.`, 400));
+        return next(new AppError(`No LabAccount mapping found for this employer under ${resolvedDotType} order type.`, 400));
     }
 
     // 6. Calculate Dynamic Payment Amount
@@ -238,11 +246,11 @@ export const createOrder = catchAsync(async (req, res, next) => {
         questOrderId: questRes.questOrderId,
         referenceTestId: questRes.referenceTestId,
         status: questRes.status || "ordered",
-        dot_type: testType,
+        dot_type: resolvedDotType,
         stripe_payment_id: paymentIntent.id,
         amount_paid: amountInCents,
         test_configuration: {
-            testType,
+            testType: resolvedTestType,
             reasonForTest,
             collectionType,
             panelId: panel._id,
