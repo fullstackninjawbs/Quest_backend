@@ -28,6 +28,10 @@ const testPanelSchema = new mongoose.Schema(
             default: "Package",
             trim: true,
         },
+        unitCode: {
+            type: String,
+            trim: true,
+        },
         isActive: {
             type: Boolean,
             default: true,

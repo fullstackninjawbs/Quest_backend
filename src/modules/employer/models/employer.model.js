@@ -62,6 +62,14 @@ const employerSchema = new mongoose.Schema(
             },
         },
         address: String,
+        labAccountDOT: {
+            type: String,
+            trim: true,
+        },
+        labAccountNonDOT: {
+            type: String,
+            trim: true,
+        },
         // Audit and Stats fields
         last_modified_by: {
             type: mongoose.Schema.Types.ObjectId,

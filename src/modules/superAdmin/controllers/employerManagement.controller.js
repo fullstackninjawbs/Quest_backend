@@ -34,7 +34,7 @@ export const updateEmployerProfile = catchAsync(async (req, res, next) => {
     }
 
     // Define editable fields
-    const allowedFields = ["company_name", "phone", "address", "business_type", "dot_number", "title"];
+    const allowedFields = ["company_name", "phone", "address", "business_type", "dot_number", "title", "labAccountDOT", "labAccountNonDOT"];
     const oldData = {};
     const newData = {};
     let isChanged = false;
