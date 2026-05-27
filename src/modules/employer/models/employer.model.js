@@ -75,6 +75,10 @@ const employerSchema = new mongoose.Schema(
         },
         resetToken: String,
         resetTokenExpiry: Date,
+        stripeCustomerId: {
+            type: String,
+            default: null,
+        },
     },
     { timestamps: true }
 );

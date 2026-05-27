@@ -5,6 +5,8 @@ import authRoutes from "./auth.routes.js";
 import profileRoutes from "./profile.routes.js";
 import employeeRoutes from "./employee.routes.js";
 import configRoutes from "./config.routes.js";
+import paymentRoutes from "./paymentRoutes.js";
+import savedPaymentRoutes from "./savedPaymentRoutes.js";
 
 // Employer Authentication
 // Endpoints: /api/v1/employer/signup, /api/v1/employer/login, etc.
@@ -22,4 +24,13 @@ router.use("/employee", employeeRoutes);
 // Endpoints: /api/v1/employer/config/options, /api/v1/employer/config/panels
 router.use("/config", configRoutes);
 
+// Stripe Payments
+// Endpoints: /api/v1/employer/payment/create-payment-intent
+router.use("/payment", paymentRoutes);
+
+// Stripe Saved Payment Methods
+// Endpoints: /api/v1/employer/payment-methods/...
+router.use("/payment-methods", savedPaymentRoutes);
+
 export default router;
+

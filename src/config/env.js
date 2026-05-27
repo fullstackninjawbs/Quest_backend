@@ -1,7 +1,7 @@
 import dotenv from "dotenv";
 dotenv.config();
 
-const requiredEnvVars = ["MONGO_URI", "JWT_SECRET", "PORT"];
+const requiredEnvVars = ["MONGO_URI", "JWT_SECRET", "PORT", "STRIPE_SECRET_KEY"];
 
 requiredEnvVars.forEach((key) => {
     if (!process.env[key]) {
@@ -21,3 +21,6 @@ export const SMTP_HOST = process.env.SMTP_HOST;
 export const SMTP_PORT = process.env.SMTP_PORT;
 export const SMTP_USER = process.env.SMTP_USER;
 export const SMTP_PASS = process.env.SMTP_PASS;
+
+export const STRIPE_SECRET_KEY = process.env.STRIPE_SECRET_KEY;
+
