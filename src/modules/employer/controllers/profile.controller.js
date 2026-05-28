@@ -1,11 +1,6 @@
 import Employer from "../models/employer.model.js";
 import catchAsync from "../../../utils/catchAsync.js";
 
-/**
- * @desc    Get Employer Profile
- * @route   GET /api/v1/employer/employer-profile
- * @access  Private (Employer)
- */
 export const getEmployerProfile = catchAsync(async (req, res, next) => {
     res.status(200).json({
         success: true,
@@ -13,17 +8,13 @@ export const getEmployerProfile = catchAsync(async (req, res, next) => {
     });
 });
 
-/**
- * @desc    Update Employer Profile
- * @route   PATCH /api/v1/employer/employer-profile
- * @access  Private (Employer)
- */
+
 export const updateEmployerProfile = catchAsync(async (req, res, next) => {
-    const { first_name, last_name, phone, company_name, address } = req.body;
+    const { first_name, last_name, phone, company_name, address, title } = req.body;
 
     const updatedUser = await Employer.findByIdAndUpdate(
         req.user._id,
-        { first_name, last_name, phone, company_name, address },
+        { first_name, last_name, phone, company_name, address, title },
         { new: true, runValidators: true }
     );
 
@@ -33,11 +24,6 @@ export const updateEmployerProfile = catchAsync(async (req, res, next) => {
     });
 });
 
-/**
- * @desc    Delete (Self) Employer Profile
- * @route   DELETE /api/v1/employer/profile-delete
- * @access  Private (Employer)
- */
 export const deleteOwnProfile = catchAsync(async (req, res, next) => {
     await Employer.findByIdAndDelete(req.user._id);
 

@@ -36,6 +36,10 @@ const employerSchema = new mongoose.Schema(
             default: "employer",
             immutable: true,
         },
+        title: {
+            type: String,
+            trim: true,
+        },
         status: {
             type: String,
             enum: ["pending", "active", "suspended"],
