@@ -114,13 +114,18 @@ export const createOrder = catchAsync(async (req, res, next) => {
         paymentMethodId
     } = req.body;
 
+    // Extract IDs in case the frontend sends objects instead of strings
+    const empId = typeof employeeId === 'object' ? (employeeId.id || employeeId._id) : employeeId;
+    const pnlId = typeof panelId === 'object' ? (panelId.id || panelId.panel_id || panelId._id) : panelId;
+    const sId = typeof siteId === 'object' ? (siteId.id || siteId.siteCode || siteId._id) : siteId;
+
     // 1. Basic validation
-    if (!employeeId || !panelId || !siteId || !testType || !dotType || !reasonForTest || !collectionType || !paymentMethodId) {
+    if (!empId || !pnlId || !sId || !testType || !dotType || !reasonForTest || !collectionType || !paymentMethodId) {
         return next(new AppError("Please provide all required parameters including paymentMethodId.", 400));
     }
 
     // 2. Fetch Employee details
-    const employee = await Employee.findOne({ _id: employeeId, employer_id: req.user._id });
+    const employee = await Employee.findOne({ _id: empId, employer_id: req.user._id });
     if (!employee) {
         return next(new AppError("Selected employee not found or unauthorized.", 404));
     }
@@ -130,11 +135,11 @@ export const createOrder = catchAsync(async (req, res, next) => {
 
     // 3. Fetch Test Panel
     let panel = null;
-    if (panelId.match(/^[0-9a-fA-F]{24}$/)) {
-        panel = await TestPanel.findById(panelId);
+    if (String(pnlId).match(/^[0-9a-fA-F]{24}$/)) {
+        panel = await TestPanel.findById(pnlId);
     }
     if (!panel) {
-        panel = await TestPanel.findOne({ panel_id: panelId });
+        panel = await TestPanel.findOne({ panel_id: pnlId });
     }
 
     if (!panel) {
@@ -146,11 +151,11 @@ export const createOrder = catchAsync(async (req, res, next) => {
 
     // 4. Fetch Collection Site
     let site = null;
-    if (siteId.match(/^[0-9a-fA-F]{24}$/)) {
-        site = await CollectionSite.findById(siteId);
+    if (String(sId).match(/^[0-9a-fA-F]{24}$/)) {
+        site = await CollectionSite.findById(sId);
     }
     if (!site) {
-        site = await CollectionSite.findOne({ siteCode: siteId });
+        site = await CollectionSite.findOne({ siteCode: sId });
     }
 
     if (!site) {
@@ -197,8 +202,8 @@ export const createOrder = catchAsync(async (req, res, next) => {
                 },
                 metadata: {
                     employerId: req.user._id.toString(),
-                    employeeId: employeeId,
-                    panelId: panelId
+                    employeeId: empId,
+                    panelId: pnlId
                 }
             });
 
@@ -305,25 +310,56 @@ export const createOrder = catchAsync(async (req, res, next) => {
 export const getOrdersList = catchAsync(async (req, res, next) => {
 
 
-    const { status, dot_type, search, page = 1, limit = 10 } = req.query;
+    const { status, dot_type, search, page = 1, limit = 10, payment_status } = req.query;
 
-    const query = { employer_id: req.user._id };
+    const baseQuery = { employer_id: req.user._id };
 
-    if (status) {
-        query.status = status;
-    }
     if (dot_type) {
+        baseQuery.dot_type = dot_type;
+    }
 
-        query.dot_type = dot_type;
+    if (payment_status && payment_status !== 'all') {
+        if (payment_status.toLowerCase() === 'paid') {
+            baseQuery.stripe_payment_id = { $ne: null };
+        } else if (payment_status.toLowerCase() === 'unpaid') {
+            baseQuery.stripe_payment_id = null;
+        }
     }
 
     if (search) {
-        query.$or = [
+        baseQuery.$or = [
             { order_number: { $regex: search, $options: "i" } },
             { "employee_snapshot.first_name": { $regex: search, $options: "i" } },
             { "employee_snapshot.last_name": { $regex: search, $options: "i" } },
             { questOrderId: { $regex: search, $options: "i" } }
         ];
+    }
+
+    // Get counts grouped by status for the frontend UI
+    const countResults = await Order.aggregate([
+        { $match: baseQuery },
+        { $group: { _id: "$status", count: { $sum: 1 } } }
+    ]);
+    const statusCounts = { ALL: 0, Ordered: 0, Scheduled: 0, 'In Progress': 0, Completed: 0, Cancelled: 0 };
+    countResults.forEach(item => {
+        const s = item._id ? item._id : 'Ordered';
+        // Normalize status strings to match frontend (or just use exact DB strings)
+        if (s.toLowerCase() === 'ordered') statusCounts['Ordered'] += item.count;
+        else if (s.toLowerCase() === 'scheduled') statusCounts['Scheduled'] += item.count;
+        else if (s.toLowerCase() === 'in-progress' || s.toLowerCase() === 'in progress') statusCounts['In Progress'] += item.count;
+        else if (s.toLowerCase() === 'completed') statusCounts['Completed'] += item.count;
+        else if (s.toLowerCase() === 'cancelled' || s.toLowerCase() === 'canceled') statusCounts['Cancelled'] += item.count;
+        statusCounts.ALL += item.count;
+    });
+
+    const query = { ...baseQuery };
+    if (status && status !== 'all') {
+        // If status is passed (and not 'all'), add to query
+        if (status.toLowerCase() === 'in progress') {
+            query.status = { $regex: /in[- ]?progress/i };
+        } else {
+            query.status = { $regex: new RegExp(`^${status}$`, 'i') };
+        }
     }
 
     const total = await Order.countDocuments(query);
@@ -337,6 +373,7 @@ export const getOrdersList = catchAsync(async (req, res, next) => {
         total,
         page: Number(page),
         limit: Number(limit),
+        statusCounts,
         orders
     });
 });

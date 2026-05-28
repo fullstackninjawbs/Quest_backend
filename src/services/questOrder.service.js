@@ -68,24 +68,70 @@ class QuestOrderService {
             donor
         } = orderData;
 
-        // Build SOAP CreateOrder Payload
+        // Build SOAP CreateOrder Payload according to Quest Implementation Guide v2.0
+        // The CreateOrder envelope expects <username>, <password>, and an <OrderXml> string.
+        // The <OrderXml> contains a nested XML document <CreateOrderTest>.
+
+        const orderXmlString = `<?xml version="1.0"?>
+<CreateOrderTest>
+  <SendingFacility>Demo</SendingFacility>
+  <SendingFacilityTimeZone>-5</SendingFacilityTimeZone>
+  <ProcessType>P</ProcessType>
+  <ClientReferenceID>REQ-${Math.floor(Date.now() / 1000)}</ClientReferenceID>
+  <PersonalData>
+    <PrimaryID>${donor.license || Math.floor(Math.random() * 1000000000)}</PrimaryID>
+    <PrimaryIDType>EID</PrimaryIDType>
+    <PersonName>
+      <GivenName>${donor.firstName}</GivenName>
+      <MiddleName />
+      <FamilyName>${donor.lastName}</FamilyName>
+    </PersonName>
+    <DateofBirth>1990/01/01</DateofBirth>
+    <Gender><IdValue /></Gender>
+    <ContactMethod>
+      <Telephone type="Home">
+        <FormattedNumber>${(donor.phone || "0000000000").replace(/[^0-9]/g, '')}</FormattedNumber>
+      </Telephone>
+      <email>${donor.email || ""}</email>
+    </ContactMethod>
+  </PersonalData>
+  <Screenings>
+    <WhoOrderedTest>Employer</WhoOrderedTest>
+    <DateOrdered />
+    <CollectionSiteID>${siteCode}</CollectionSiteID>
+    <ReasonForTest>
+      <IdValue>${reasonForTest === "Post Accident" ? 2 : reasonForTest === "Random" ? 3 : 1}</IdValue>
+      <IdName>${reasonForTest.toUpperCase().replace(' ', '-')}</IdName>
+    </ReasonForTest>
+    <Screening type="Drug">
+      <DOTTest>${dotTest ? 'Y' : 'N'}</DOTTest>
+      <RequestObservation>${observedRequested ? 'Y' : 'N'}</RequestObservation>
+      <RequestSplitSample>${splitSpecimenRequested ? 'Y' : 'N'}</RequestSplitSample>
+      <TestProcedure>
+        <IdSampleType>UR</IdSampleType>
+        <IdTestMethod>LAB</IdTestMethod>
+      </TestProcedure>
+      <UnitCodes>
+        <IdValue>${unitCode}</IdValue>
+      </UnitCodes>
+      <LaboratoryID>QUEST</LaboratoryID>
+      <LaboratoryAccount>${labAccount}</LaboratoryAccount>
+    </Screening>
+  </Screenings>
+</CreateOrderTest>`;
+
+        // Escape the nested XML so it can be passed safely as a string inside <OrderXml>
+        const escapedOrderXml = orderXmlString
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&apos;');
+
         const bodyXml = `<CreateOrder xmlns="http://wssim.labone.com/">
       <username>${this.username}</username>
       <password>${this.password}</password>
-      <labAccount>${labAccount}</labAccount>
-      <unitCode>${unitCode}</unitCode>
-      <siteCode>${siteCode}</siteCode>
-      <dotTest>${dotTest}</dotTest>
-      <observedRequested>${observedRequested}</observedRequested>
-      <splitSpecimenRequested>${splitSpecimenRequested}</splitSpecimenRequested>
-      <reasonForTest>${reasonForTest}</reasonForTest>
-      <donor>
-        <firstName>${donor.firstName}</firstName>
-        <lastName>${donor.lastName}</lastName>
-        <email>${donor.email}</email>
-        <phone>${donor.phone}</phone>
-        <license>${donor.license || ""}</license>
-      </donor>
+      <OrderXml>${escapedOrderXml}</OrderXml>
     </CreateOrder>`;
 
         // Emulate Quest response during sandbox downtime / invalid credentials if configured
