@@ -114,6 +114,7 @@ export const createOrder = catchAsync(async (req, res, next) => {
         paymentMethodId
     } = req.body;
 
+<<<<<<< HEAD
     // Extract IDs in case the frontend sends objects instead of strings
     const empId = typeof employeeId === 'object' ? (employeeId.id || employeeId._id) : employeeId;
     const pnlId = typeof panelId === 'object' ? (panelId.id || panelId.panel_id || panelId._id) : panelId;
@@ -121,11 +122,19 @@ export const createOrder = catchAsync(async (req, res, next) => {
 
     // 1. Basic validation
     if (!empId || !pnlId || !sId || !testType || !dotType || !reasonForTest || !collectionType || !paymentMethodId) {
+=======
+    // 1. Basic validation
+    if (!employeeId || !panelId || !siteId || !testType || !dotType || !reasonForTest || !collectionType || !paymentMethodId) {
+>>>>>>> eebcb52a924c0fa26136d2f44b72f44be1ad6411
         return next(new AppError("Please provide all required parameters including paymentMethodId.", 400));
     }
 
     // 2. Fetch Employee details
+<<<<<<< HEAD
     const employee = await Employee.findOne({ _id: empId, employer_id: req.user._id });
+=======
+    const employee = await Employee.findOne({ _id: employeeId, employer_id: req.user._id });
+>>>>>>> eebcb52a924c0fa26136d2f44b72f44be1ad6411
     if (!employee) {
         return next(new AppError("Selected employee not found or unauthorized.", 404));
     }
@@ -135,11 +144,19 @@ export const createOrder = catchAsync(async (req, res, next) => {
 
     // 3. Fetch Test Panel
     let panel = null;
+<<<<<<< HEAD
     if (String(pnlId).match(/^[0-9a-fA-F]{24}$/)) {
         panel = await TestPanel.findById(pnlId);
     }
     if (!panel) {
         panel = await TestPanel.findOne({ panel_id: pnlId });
+=======
+    if (panelId.match(/^[0-9a-fA-F]{24}$/)) {
+        panel = await TestPanel.findById(panelId);
+    }
+    if (!panel) {
+        panel = await TestPanel.findOne({ panel_id: panelId });
+>>>>>>> eebcb52a924c0fa26136d2f44b72f44be1ad6411
     }
 
     if (!panel) {
@@ -151,11 +168,19 @@ export const createOrder = catchAsync(async (req, res, next) => {
 
     // 4. Fetch Collection Site
     let site = null;
+<<<<<<< HEAD
     if (String(sId).match(/^[0-9a-fA-F]{24}$/)) {
         site = await CollectionSite.findById(sId);
     }
     if (!site) {
         site = await CollectionSite.findOne({ siteCode: sId });
+=======
+    if (siteId.match(/^[0-9a-fA-F]{24}$/)) {
+        site = await CollectionSite.findById(siteId);
+    }
+    if (!site) {
+        site = await CollectionSite.findOne({ siteCode: siteId });
+>>>>>>> eebcb52a924c0fa26136d2f44b72f44be1ad6411
     }
 
     if (!site) {
@@ -202,8 +227,13 @@ export const createOrder = catchAsync(async (req, res, next) => {
                 },
                 metadata: {
                     employerId: req.user._id.toString(),
+<<<<<<< HEAD
                     employeeId: empId,
                     panelId: pnlId
+=======
+                    employeeId: employeeId,
+                    panelId: panelId
+>>>>>>> eebcb52a924c0fa26136d2f44b72f44be1ad6411
                 }
             });
 
@@ -310,6 +340,7 @@ export const createOrder = catchAsync(async (req, res, next) => {
 export const getOrdersList = catchAsync(async (req, res, next) => {
 
 
+<<<<<<< HEAD
     const { status, dot_type, search, page = 1, limit = 10, payment_status } = req.query;
 
     const baseQuery = { employer_id: req.user._id };
@@ -328,6 +359,22 @@ export const getOrdersList = catchAsync(async (req, res, next) => {
 
     if (search) {
         baseQuery.$or = [
+=======
+    const { status, dot_type, search, page = 1, limit = 10 } = req.query;
+
+    const query = { employer_id: req.user._id };
+
+    if (status) {
+        query.status = status;
+    }
+    if (dot_type) {
+
+        query.dot_type = dot_type;
+    }
+
+    if (search) {
+        query.$or = [
+>>>>>>> eebcb52a924c0fa26136d2f44b72f44be1ad6411
             { order_number: { $regex: search, $options: "i" } },
             { "employee_snapshot.first_name": { $regex: search, $options: "i" } },
             { "employee_snapshot.last_name": { $regex: search, $options: "i" } },
@@ -335,6 +382,7 @@ export const getOrdersList = catchAsync(async (req, res, next) => {
         ];
     }
 
+<<<<<<< HEAD
     // Get counts grouped by status for the frontend UI
     const countResults = await Order.aggregate([
         { $match: baseQuery },
@@ -362,6 +410,8 @@ export const getOrdersList = catchAsync(async (req, res, next) => {
         }
     }
 
+=======
+>>>>>>> eebcb52a924c0fa26136d2f44b72f44be1ad6411
     const total = await Order.countDocuments(query);
     const orders = await Order.find(query)
         .sort({ createdAt: -1 })
@@ -373,7 +423,10 @@ export const getOrdersList = catchAsync(async (req, res, next) => {
         total,
         page: Number(page),
         limit: Number(limit),
+<<<<<<< HEAD
         statusCounts,
+=======
+>>>>>>> eebcb52a924c0fa26136d2f44b72f44be1ad6411
         orders
     });
 });

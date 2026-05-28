@@ -36,6 +36,7 @@ app.get("/api/health", (req, res) =>
 // ─── API Routes ───────────────────────────────────────────────────────────────
 app.use("/api/v1", routes);
 
+
 // ─── 404 Handler ─────────────────────────────────────────────────────────────
 app.all("*", (req, res, next) =>
     next(new AppError(`Route ${req.originalUrl} not found`, 404))

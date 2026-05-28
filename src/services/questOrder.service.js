@@ -6,73 +6,74 @@ import { parseStringPromise } from "xml2js";
  * Communicates with Quest Diagnostics SOAP Web Services.
  */
 class QuestOrderService {
-    constructor() {
-        this.url = process.env.QUEST_UAT_ORDER_URL || "https://qcs-uat.questdiagnostics.com/services/OrderService.asmx";
-        this.username = process.env.QUEST_UAT_USERNAME || "cli_AmericanScreeningUAT";
-        this.password = process.env.QUEST_UAT_PASSWORD || "83kAN6Nd6me6";
-    }
+  constructor() {
+    this.url = process.env.QUEST_UAT_ORDER_URL || "https://qcs-uat.questdiagnostics.com/services/OrderService.asmx";
+    this.username = process.env.QUEST_UAT_USERNAME || "cli_AmericanScreeningUAT";
+    this.password = process.env.QUEST_UAT_PASSWORD || "83kAN6Nd6me6";
+  }
 
-    /**
-     * Helper to perform axios SOAP post
-     */
-    async _soapRequest(action, bodyXml) {
-        const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
+  /**
+   * Helper to perform axios SOAP post
+   */
+  async _soapRequest(action, bodyXml) {
+    const soapEnvelope = `<?xml version="1.0" encoding="utf-8"?>
 <soap:Envelope xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
   <soap:Body>
     ${bodyXml}
   </soap:Body>
 </soap:Envelope>`;
 
-        try {
-            const response = await axios.post(this.url, soapEnvelope, {
-                headers: {
-                    "Content-Type": "text/xml; charset=utf-8",
-                    "SOAPAction": `http://wssim.labone.com/${action}`
-                },
-                timeout: 20000 // 20-second timeout for quick failures
-            });
-            return {
-                success: true,
-                xml: response.data
-            };
-        } catch (error) {
-            console.error("Quest SOAP Axios Connection Error:", error.message);
-            
-            // Try to extract raw SOAP fault from response if available
-            const faultXml = error.response?.data;
-            if (faultXml) {
-                return {
-                    success: false,
-                    xml: faultXml,
-                    errorMsg: `Quest SOAP Fault: ${error.message}`
-                };
-            }
-            throw new Error(`Failed to establish connection with Quest SOAP API: ${error.message}`);
-        }
+    try {
+      const response = await axios.post(this.url, soapEnvelope, {
+        headers: {
+          "Content-Type": "text/xml; charset=utf-8",
+          "SOAPAction": `http://wssim.labone.com/${action}`
+        },
+        timeout: 20000 // 20-second timeout for quick failures
+      });
+      return {
+        success: true,
+        xml: response.data
+      };
+    } catch (error) {
+      console.error("Quest SOAP Axios Connection Error:", error.message);
+
+      // Try to extract raw SOAP fault from response if available
+      const faultXml = error.response?.data;
+      if (faultXml) {
+        return {
+          success: false,
+          xml: faultXml,
+          errorMsg: `Quest SOAP Fault: ${error.message}`
+        };
+      }
+      throw new Error(`Failed to establish connection with Quest SOAP API: ${error.message}`);
     }
+  }
 
-    /**
-     * Submits a new drug test order to Quest Diagnostics
-     */
-    async createQuestOrder(orderData) {
-        console.log(`QuestOrderService: Initiating CreateOrder for ${orderData.donor.firstName} ${orderData.donor.lastName}...`);
+  /**
+   * Submits a new drug test order to Quest Diagnostics
+   */
+  async createQuestOrder(orderData) {
+    console.log(`QuestOrderService: Initiating CreateOrder for ${orderData.donor.firstName} ${orderData.donor.lastName}...`);
 
-        const {
-            labAccount,
-            unitCode,
-            siteCode,
-            dotTest = false,
-            observedRequested = false,
-            splitSpecimenRequested = false,
-            reasonForTest = "Pre Employment",
-            donor
-        } = orderData;
+    const {
+      labAccount,
+      unitCode,
+      siteCode,
+      dotTest = false,
+      observedRequested = false,
+      splitSpecimenRequested = false,
+      reasonForTest = "Pre Employment",
+      donor
+    } = orderData;
 
-        // Build SOAP CreateOrder Payload according to Quest Implementation Guide v2.0
-        // The CreateOrder envelope expects <username>, <password>, and an <OrderXml> string.
-        // The <OrderXml> contains a nested XML document <CreateOrderTest>.
+<<<<<<< HEAD
+    // Build SOAP CreateOrder Payload according to Quest Implementation Guide v2.0
+    // The CreateOrder envelope expects <username>, <password>, and an <OrderXml> string.
+    // The <OrderXml> contains a nested XML document <CreateOrderTest>.
 
-        const orderXmlString = `<?xml version="1.0"?>
+    const orderXmlString = `<?xml version="1.0"?>
 <CreateOrderTest>
   <SendingFacility>Demo</SendingFacility>
   <SendingFacilityTimeZone>-5</SendingFacilityTimeZone>
@@ -120,19 +121,39 @@ class QuestOrderService {
   </Screenings>
 </CreateOrderTest>`;
 
-        // Escape the nested XML so it can be passed safely as a string inside <OrderXml>
-        const escapedOrderXml = orderXmlString
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&apos;');
+    // Escape the nested XML so it can be passed safely as a string inside <OrderXml>
+    const escapedOrderXml = orderXmlString
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&apos;');
 
-        const bodyXml = `<CreateOrder xmlns="http://wssim.labone.com/">
+    const bodyXml = `<CreateOrder xmlns="http://wssim.labone.com/">
       <username>${this.username}</username>
       <password>${this.password}</password>
       <OrderXml>${escapedOrderXml}</OrderXml>
-    </CreateOrder>`;
+=======
+        // Build SOAP CreateOrder Payload
+        const bodyXml = `< CreateOrder xmlns = "http://wssim.labone.com/" >
+      <username>${this.username}</username>
+      <password>${this.password}</password>
+      <labAccount>${labAccount}</labAccount>
+      <unitCode>${unitCode}</unitCode>
+      <siteCode>${siteCode}</siteCode>
+      <dotTest>${dotTest}</dotTest>
+      <observedRequested>${observedRequested}</observedRequested>
+      <splitSpecimenRequested>${splitSpecimenRequested}</splitSpecimenRequested>
+      <reasonForTest>${reasonForTest}</reasonForTest>
+      <donor>
+        <firstName>${donor.firstName}</firstName>
+        <lastName>${donor.lastName}</lastName>
+        <email>${donor.email}</email>
+        <phone>${donor.phone}</phone>
+        <license>${donor.license || ""}</license>
+      </donor>
+>>>>>>> eebcb52a924c0fa26136d2f44b72f44be1ad6411
+    </CreateOrder > `;
 
         // Emulate Quest response during sandbox downtime / invalid credentials if configured
         if (process.env.QUEST_MOCK_SOAP === "true" || !this.username) {
@@ -166,8 +187,8 @@ class QuestOrderService {
             }
 
             return {
-                questOrderId: orderResult.QuestOrderID?.[0] || `Q-${Math.floor(100000 + Math.random() * 900000)}`,
-                referenceTestId: orderResult.ReferenceTestID?.[0] || `REF-${Math.floor(1000000 + Math.random() * 9000000)}`,
+                questOrderId: orderResult.QuestOrderID?.[0] || `Q - ${ Math.floor(100000 + Math.random() * 900000) } `,
+                referenceTestId: orderResult.ReferenceTestID?.[0] || `REF - ${ Math.floor(1000000 + Math.random() * 9000000) } `,
                 status: "ordered",
                 requestXml: bodyXml,
                 responseXml: soapRes.xml
@@ -184,14 +205,14 @@ class QuestOrderService {
      * Requests Quest to void/cancel an existing order
      */
     async cancelQuestOrder(questOrderId, referenceTestId) {
-        console.log(`QuestOrderService: Requesting CancelOrder for Quest ID: ${questOrderId}...`);
+        console.log(`QuestOrderService: Requesting CancelOrder for Quest ID: ${ questOrderId }...`);
 
-        const bodyXml = `<CancelOrder xmlns="http://wssim.labone.com/">
+        const bodyXml = `< CancelOrder xmlns = "http://wssim.labone.com/" >
       <username>${this.username}</username>
       <password>${this.password}</password>
       <questOrderId>${questOrderId}</questOrderId>
       <referenceTestId>${referenceTestId || ""}</referenceTestId>
-    </CancelOrder>`;
+    </CancelOrder > `;
 
         if (process.env.QUEST_MOCK_SOAP === "true" || !this.username) {
             return this._getMockCancelResponse(questOrderId, bodyXml);
@@ -204,7 +225,7 @@ class QuestOrderService {
 
             if (soapBody?.["soap:Fault"]) {
                 const faultString = soapBody?.["soap:Fault"]?.[0]?.faultstring?.[0] || "Unknown Fault";
-                throw new Error(`Quest SOAP Cancellation Rejection: ${faultString}`);
+                throw new Error(`Quest SOAP Cancellation Rejection: ${ faultString } `);
             }
 
             const cancelRes = soapBody?.["CancelOrderResponse"]?.[0]?.["CancelOrderResult"]?.[0];
@@ -233,19 +254,19 @@ class QuestOrderService {
         const randId = Math.floor(10000000 + Math.random() * 90000000);
         const refId = Math.floor(100000 + Math.random() * 900000).toString(16).toUpperCase();
         
-        const mockResponseXml = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <CreateOrderResponse xmlns="http://wssim.labone.com/">
-      <CreateOrderResult>&lt;OrderResult&gt;&lt;Status&gt;Success&lt;/Status&gt;&lt;QuestOrderID&gt;QST${randId}&lt;/QuestOrderID&gt;&lt;ReferenceTestID&gt;${refId}&lt;/ReferenceTestID&gt;&lt;/OrderResult&gt;</CreateOrderResult>
-    </CreateOrderResponse>
-  </soap:Body>
-</soap:Envelope>`;
+        const mockResponseXml = `<? xml version = "1.0" encoding = "utf-8" ?>
+      <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+        <soap:Body>
+          <CreateOrderResponse xmlns="http://wssim.labone.com/">
+            <CreateOrderResult>&lt;OrderResult&gt;&lt;Status&gt;Success&lt;/Status&gt;&lt;QuestOrderID&gt;QST${randId}&lt;/QuestOrderID&gt;&lt;ReferenceTestID&gt;${refId}&lt;/ReferenceTestID&gt;&lt;/OrderResult&gt;</CreateOrderResult>
+          </CreateOrderResponse>
+        </soap:Body>
+      </soap:Envelope>`;
 
-        console.log(`QuestOrderService: ${warningMsg ? `Warning: ${warningMsg}. ` : ""}Mocking Quest order confirmation response.`);
+        console.log(`QuestOrderService: ${ warningMsg ? `Warning: ${warningMsg}. ` : "" }Mocking Quest order confirmation response.`);
 
         return {
-            questOrderId: `QST${randId}`,
+            questOrderId: `QST${ randId } `,
             referenceTestId: refId,
             status: "ordered",
             requestXml: requestXml,
@@ -254,14 +275,14 @@ class QuestOrderService {
     }
 
     _getMockCancelResponse(questOrderId, requestXml) {
-        const mockResponseXml = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <CancelOrderResponse xmlns="http://wssim.labone.com/">
-      <CancelOrderResult>&lt;CancelResult&gt;&lt;Status&gt;Success&lt;/Status&gt;&lt;QuestOrderID&gt;${questOrderId}&lt;/QuestOrderID&gt;&lt;/CancelResult&gt;</CancelOrderResult>
-    </CancelOrderResponse>
-  </soap:Body>
-</soap:Envelope>`;
+        const mockResponseXml = `<? xml version = "1.0" encoding = "utf-8" ?>
+      <soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+        <soap:Body>
+          <CancelOrderResponse xmlns="http://wssim.labone.com/">
+            <CancelOrderResult>&lt;CancelResult&gt;&lt;Status&gt;Success&lt;/Status&gt;&lt;QuestOrderID&gt;${questOrderId}&lt;/QuestOrderID&gt;&lt;/CancelResult&gt;</CancelOrderResult>
+          </CancelOrderResponse>
+        </soap:Body>
+      </soap:Envelope>`;
 
         return {
             success: true,

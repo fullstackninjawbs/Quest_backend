@@ -49,15 +49,15 @@ class QuestService {
             name: addr.Name?.[0] || "Unknown Site",
             status: site.Status?.[0],
             address: {
-                line1: addr.Address1?.[0] || "",
-                line2: addr.Address2?.[0] || "",
-                city: addr.City?.[0] || "",
-                state: addr.State?.[0] || "",
-                zip: addr.Zip?.[0] || "",
-                county: addr.County?.[0] || ""
+                line1: (addr.Address1?.[0] || "").trim(),
+                line2: (addr.Address2?.[0] || "").trim(),
+                city: (addr.City?.[0] || "").trim(),
+                state: (addr.State?.[0] || "").trim(),
+                zip: (addr.Zip?.[0] || "").trim(),
+                county: (addr.County?.[0] || "").trim()
             },
-            phone: site.PrimaryPhoneNumber?.[0] || "",
-            secondaryPhone: site.SecondaryPhoneNumber?.[0] || "",
+            phone: (site.PrimaryPhoneNumber?.[0] || "").trim(),
+            secondaryPhone: (site.SecondaryPhoneNumber?.[0] || "").trim(),
             fax: site.FaxNumber?.[0] || "",
             email: site.EmailAddress?.[0] || "",
             website: site.Website?.[0] || "",

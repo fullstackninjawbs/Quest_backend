@@ -225,7 +225,7 @@ export const addEmployeeCSV = catchAsync(async (req, res, next) => {
                         license_number: row.license_number || row.License || "-",
                         type: (row.type || "DOT").toUpperCase(),
                         status: (row.status || "Active"),
-                        zip_code: row.zip_code || row.Zip || "-",
+                        zip_code: row.zip_code || row.Zip || row.zip || "-",
                         state: row.state || row.State || "-",
                         der_name: row.der_name || "-",
                         der_phone: row.der_phone || "-",

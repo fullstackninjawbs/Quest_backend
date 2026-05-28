@@ -36,6 +36,10 @@ const employerSchema = new mongoose.Schema(
             default: "employer",
             immutable: true,
         },
+        title: {
+            type: String,
+            trim: true,
+        },
         status: {
             type: String,
             enum: ["pending", "active", "suspended"],
@@ -83,6 +87,10 @@ const employerSchema = new mongoose.Schema(
         },
         resetToken: String,
         resetTokenExpiry: Date,
+        stripeCustomerId: {
+            type: String,
+            default: null,
+        },
     },
     { timestamps: true }
 );
