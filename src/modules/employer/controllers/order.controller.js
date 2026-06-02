@@ -191,7 +191,7 @@ export const createOrder = catchAsync(async (req, res, next) => {
     } else {
         try {
             console.log(`Stripe Charge: Processing dynamic charge of $${(amountInCents / 100).toFixed(2)} for ${employer.company_name}...`);
-            paymentIntent = await stripe.paymentIntents.create({
+            const paymentIntentOptions = {
                 amount: amountInCents,
                 currency: "usd",
                 payment_method: paymentMethodId,
@@ -205,7 +205,13 @@ export const createOrder = catchAsync(async (req, res, next) => {
                     employeeId: empId,
                     panelId: pnlId
                 }
-            });
+            };
+
+            if (employer.stripeCustomerId) {
+                paymentIntentOptions.customer = employer.stripeCustomerId;
+            }
+
+            paymentIntent = await stripe.paymentIntents.create(paymentIntentOptions);
 
             if (paymentIntent.status !== "succeeded") {
                 return next(new AppError(`Stripe Payment Intent status: ${paymentIntent.status}. Verification failed.`, 402));
@@ -295,10 +301,14 @@ export const createOrder = catchAsync(async (req, res, next) => {
         $inc: { total_orders: 1 }
     });
 
+    const orderObj = newOrder.toObject();
+    delete orderObj.request_payload;
+    delete orderObj.response_payload;
+
     res.status(201).json({
         success: true,
         message: "Order successfully placed and persisted.",
-        order: newOrder
+        order: orderObj
     });
 });
 
@@ -364,6 +374,7 @@ export const getOrdersList = catchAsync(async (req, res, next) => {
 
     const total = await Order.countDocuments(query);
     const orders = await Order.find(query)
+        .select('-request_payload -response_payload')
         .sort({ createdAt: -1 })
         .skip((page - 1) * limit)
         .limit(Number(limit));
@@ -384,7 +395,7 @@ export const getOrdersList = catchAsync(async (req, res, next) => {
  * @access  Private (Employer Only)
  */
 export const getOrderDetails = catchAsync(async (req, res, next) => {
-    const order = await Order.findById(req.params.id);
+    const order = await Order.findById(req.params.id).select('-request_payload -response_payload');
 
     if (!order) {
         return next(new AppError("Order record not found.", 404));
@@ -398,6 +409,50 @@ export const getOrderDetails = catchAsync(async (req, res, next) => {
     res.status(200).json({
         success: true,
         order
+    });
+});
+
+/**
+ * @desc    Get real-time order status from Quest SOAP API
+ * @route   GET /api/v1/employer/orders/:id/quest-status
+ * @access  Private (Employer Only)
+ */
+export const getQuestOrderStatusAPI = catchAsync(async (req, res, next) => {
+    const order = await Order.findById(req.params.id);
+
+    if (!order) {
+        return next(new AppError("Order record not found.", 404));
+    }
+
+    if (order.employer_id.toString() !== req.user._id.toString()) {
+        return next(new AppError("You do not have permission to access this order.", 403));
+    }
+
+    if (!order.questOrderId) {
+        return next(new AppError("This order has no associated Quest Order ID.", 400));
+    }
+
+    const questStatusRes = await questOrderService.getQuestOrderStatus(order.questOrderId);
+
+    // Optionally update local DB status if Quest says it's Completed, Cancelled, etc.
+    if (questStatusRes.success && questStatusRes.status) {
+        // Simple mapping example:
+        const lowerStatus = questStatusRes.status.toLowerCase();
+        let newDbStatus = order.status;
+
+        if (lowerStatus.includes('cancel')) newDbStatus = 'cancelled';
+        else if (lowerStatus.includes('complete') || lowerStatus.includes('result')) newDbStatus = 'completed';
+        else if (lowerStatus.includes('progress') || lowerStatus.includes('collected')) newDbStatus = 'in-progress';
+        
+        if (newDbStatus !== order.status) {
+            order.status = newDbStatus;
+            await order.save();
+        }
+    }
+
+    res.status(200).json({
+        success: true,
+        questStatus: questStatusRes
     });
 });
 
@@ -444,5 +499,41 @@ export const cancelOrder = catchAsync(async (req, res, next) => {
         success: true,
         message: "Order successfully cancelled/voided.",
         order
+    });
+});
+
+/**
+ * @desc    Delete an order record
+ * @route   DELETE /api/v1/employer/orders/:id
+ * @access  Private (Employer Only)
+ */
+export const deleteOrder = catchAsync(async (req, res, next) => {
+    const orderId = req.params.id;
+
+    if (!orderId) {
+        return next(new AppError("Please provide an order ID to delete.", 400));
+    }
+
+    const order = await Order.findById(orderId);
+    if (!order) {
+        return next(new AppError("Order record not found.", 404));
+    }
+
+    // Auth ownership check
+    if (order.employer_id.toString() !== req.user._id.toString()) {
+        return next(new AppError("Unauthorized access to modify this order.", 403));
+    }
+
+    // Delete order from MongoDB
+    await Order.findByIdAndDelete(orderId);
+
+    // Optionally decrement total_orders in Employer model
+    await Employer.findByIdAndUpdate(req.user._id, {
+        $inc: { total_orders: -1 }
+    });
+
+    res.status(200).json({
+        success: true,
+        message: "Order successfully deleted."
     });
 });

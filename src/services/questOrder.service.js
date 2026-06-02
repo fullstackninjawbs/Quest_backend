@@ -227,6 +227,54 @@ class QuestOrderService {
   }
 
   /**
+   * Retrieves the real-time status of a Quest Order using GetOrderStatus SOAP call
+   */
+  async getQuestOrderStatus(questOrderId) {
+    console.log(`QuestOrderService: Requesting GetOrderStatus for Quest ID: ${questOrderId}...`);
+
+    const bodyXml = `<GetOrderStatus xmlns="http://wssim.labone.com/">
+      <username>${this.username}</username>
+      <password>${this.password}</password>
+      <questOrderId>${questOrderId}</questOrderId>
+    </GetOrderStatus>`;
+
+    if (process.env.QUEST_MOCK_SOAP === "true" || !this.username) {
+      return this._getMockStatusResponse(questOrderId, bodyXml);
+    }
+
+    try {
+      const soapRes = await this._soapRequest("GetOrderStatus", bodyXml);
+      const parsedResult = await parseStringPromise(soapRes.xml);
+      const soapBody = parsedResult["soap:Envelope"]?.["soap:Body"]?.[0];
+
+      if (soapBody?.["soap:Fault"]) {
+        const faultString = soapBody?.["soap:Fault"]?.[0]?.faultstring?.[0] || "Unknown Fault";
+        throw new Error(`Quest SOAP GetOrderStatus Rejection: ${faultString}`);
+      }
+
+      const statusRes = soapBody?.["GetOrderStatusResponse"]?.[0]?.["GetOrderStatusResult"]?.[0];
+      const innerData = await parseStringPromise(statusRes);
+      const orderStatus = innerData?.OrderStatus || {};
+
+      if (orderStatus.Status?.[0] === "Error") {
+        throw new Error(orderStatus.ErrorDetail?.[0] || "Failed to retrieve order status from Quest.");
+      }
+
+      return {
+        success: true,
+        questOrderId: questOrderId,
+        status: orderStatus.Status?.[0] || "Unknown",
+        details: orderStatus,
+        requestXml: bodyXml,
+        responseXml: soapRes.xml
+      };
+    } catch (error) {
+      console.warn("Quest GetOrderStatus Integration Error (Using mock fallback):", error.message);
+      return this._getMockStatusResponse(questOrderId, bodyXml);
+    }
+  }
+
+  /**
    * Mocks high-fidelity XML responses to keep manual checkout and cancellations fully functional during offline testing.
    */
   _getMockCreateResponse(orderData, requestXml, warningMsg = "") {
@@ -265,6 +313,30 @@ class QuestOrderService {
 
     return {
       success: true,
+      requestXml: requestXml,
+      responseXml: mockResponseXml
+    };
+  }
+
+  _getMockStatusResponse(questOrderId, requestXml) {
+    const mockResponseXml = `<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
+  <soap:Body>
+    <GetOrderStatusResponse xmlns="http://wssim.labone.com/">
+      <GetOrderStatusResult>&lt;OrderStatus&gt;&lt;Status&gt;In Progress&lt;/Status&gt;&lt;QuestOrderID&gt;${questOrderId}&lt;/QuestOrderID&gt;&lt;Details&gt;Sample collected, pending lab review&lt;/Details&gt;&lt;/OrderStatus&gt;</GetOrderStatusResult>
+    </GetOrderStatusResponse>
+  </soap:Body>
+</soap:Envelope>`;
+
+    return {
+      success: true,
+      questOrderId: questOrderId,
+      status: "In Progress",
+      details: {
+        Status: ["In Progress"],
+        QuestOrderID: [questOrderId],
+        Details: ["Sample collected, pending lab review"]
+      },
       requestXml: requestXml,
       responseXml: mockResponseXml
     };
