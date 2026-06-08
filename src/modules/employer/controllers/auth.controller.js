@@ -1,5 +1,9 @@
 import * as authService from "../../../services/auth.service.js";
 import catchAsync from "../../../utils/catchAsync.js";
+import Session from "../../../shared/models/session.model.js";
+import LoginHistory from "../../../shared/models/loginHistory.model.js";
+import { parseUserAgent, getIpLocation } from "../../../utils/security.util.js";
+import Employer from "../models/employer.model.js";
 
 // @desc    Employer Signup
 // @route   POST /api/v1/employer/auth/signup
@@ -20,20 +24,65 @@ export const signup = catchAsync(async (req, res, next) => {
 // @access  Public
 export const login = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
-    const result = await authService.loginUser(email, password);
+    
+    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    const { device, isMobile } = parseUserAgent(req.headers['user-agent']);
+    const location = getIpLocation(clientIp);
 
-    // Verify role matches
-    if (result.user.role !== "employer") {
-        return res.status(403).json({
-            success: false,
-            message: "Unauthorized. This portal is for Employers only."
+    try {
+        const result = await authService.loginUser(email, password);
+
+        // Verify role matches
+        if (result.user.role !== "employer") {
+            return res.status(403).json({
+                success: false,
+                message: "Unauthorized. This portal is for Employers only."
+            });
+        }
+
+        // Create Session
+        await Session.create({
+            userId: result.user.id,
+            userModel: 'Employer',
+            token: result.token,
+            device,
+            ip: clientIp,
+            location,
+            isMobile
         });
-    }
 
-    res.status(200).json({
-        success: true,
-        ...result,
-    });
+        // Create Login History (Success)
+        await LoginHistory.create({
+            userId: result.user.id,
+            userModel: 'Employer',
+            device,
+            ip: clientIp,
+            location,
+            status: 'Success'
+        });
+
+        res.status(200).json({
+            success: true,
+            ...result,
+        });
+    } catch (err) {
+        // Find user if exists to log failed attempt
+        try {
+            const userMatch = await Employer.findOne({ email });
+            if (userMatch) {
+                await LoginHistory.create({
+                    userId: userMatch._id,
+                    userModel: 'Employer',
+                    device,
+                    ip: clientIp,
+                    location,
+                    status: 'Fail'
+                });
+            }
+        } catch (_) {}
+        
+        throw err;
+    }
 });
 
 // @desc    Verify OTP for Employer
@@ -123,6 +172,15 @@ export const resetPasswordLink = catchAsync(async (req, res, next) => {
 // @desc    Logout Employer
 // @route   POST /api/v1/employer/auth/logout
 export const logout = catchAsync(async (req, res, next) => {
+    let token = "";
+    if (req.headers.authorization && req.headers.authorization.startsWith("Bearer ")) {
+        token = req.headers.authorization.split(" ")[1];
+    }
+    
+    if (token) {
+        await Session.deleteOne({ token });
+    }
+
     res.status(200).json({
         success: true,
         message: "Employer logged out successfully.",

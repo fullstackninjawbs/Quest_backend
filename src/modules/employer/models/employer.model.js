@@ -91,6 +91,18 @@ const employerSchema = new mongoose.Schema(
             type: String,
             default: null,
         },
+        require2FA: {
+            type: Boolean,
+            default: false,
+        },
+        sessionMinutes: {
+            type: Number,
+            default: 720,
+        },
+        ipAllowList: {
+            type: String,
+            default: "",
+        },
     },
     { timestamps: true }
 );

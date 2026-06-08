@@ -32,7 +32,7 @@ const orderSchema = new mongoose.Schema(
         },
         status: {
             type: String,
-            enum: ["ordered", "failed", "cancelled", "completed"],
+            enum: ["ordered", "scheduled", "in-progress", "MRO Review", "completed", "cancelled", "failed"],
             default: "ordered",
             index: true,
         },
@@ -85,6 +85,36 @@ const orderSchema = new mongoose.Schema(
         },
         error_details: {
             type: String,
+        },
+        substance_results: [
+            {
+                substanceName: { type: String },
+                result: { type: String }, // e.g., "Negative", "Positive", "Pending Review", "Cancelled"
+                value: { type: String }
+            }
+        ],
+        plain_text_report: {
+            type: String,
+        },
+        report_pdf_base64: {
+            type: String,
+        },
+        status_logs: [
+            {
+                status: { type: String },
+                updatedAt: { type: Date, default: Date.now }
+            }
+        ],
+        mro_verified: {
+            type: Boolean,
+            default: false
+        },
+        mro_name: {
+            type: String,
+        },
+        test_result: {
+            type: String, // "pass" | "fail" | "PHO" | "—"
+            default: "—"
         }
     },
     { timestamps: true }

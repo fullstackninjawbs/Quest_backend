@@ -3,6 +3,8 @@ import Employer from "../models/employer.model.js";
 import AppError from "../../../utils/AppError.js";
 import catchAsync from "../../../utils/catchAsync.js";
 import { JWT_SECRET } from "../../../config/env.js";
+import Session from "../../../shared/models/session.model.js";
+import { parseUserAgent, getIpLocation } from "../../../utils/security.util.js";
 
 /**
  * Specialized middleware for Employer authentication and authorization.
@@ -40,6 +42,30 @@ const employerAuth = catchAsync(async (req, res, next) => {
     // Role Check
     if (user.role !== "employer") {
         return next(new AppError("Access denied. Employer role required.", 403));
+    }
+
+    // Session Verification
+    const session = await Session.findOne({ token, userId: user._id });
+    if (!session) {
+        // Backward compatibility: Auto-create session if token is valid but session record is missing
+        const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+        const userAgent = req.headers['user-agent'] || '';
+        const { device, isMobile } = parseUserAgent(userAgent);
+        const location = getIpLocation(ip);
+        
+        await Session.create({
+            userId: user._id,
+            userModel: 'Employer',
+            token,
+            device,
+            ip,
+            location,
+            isMobile
+        });
+    } else {
+        // Update last active timestamp
+        session.lastActive = new Date();
+        await session.save();
     }
 
     req.user = user;

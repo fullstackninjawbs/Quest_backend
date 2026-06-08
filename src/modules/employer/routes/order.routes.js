@@ -6,7 +6,8 @@ import {
     getOrderDetails,
     getQuestOrderStatusAPI,
     cancelOrder,
-    deleteOrder
+    deleteOrder,
+    getOrderReport
 } from "../controllers/order.controller.js";
 import employerAuth from "../middleware/employer.middleware.js";
 
@@ -21,6 +22,7 @@ router.post("/cancel", cancelOrder);
 router.get("/", getOrdersList);
 router.get("/:id", getOrderDetails);
 router.get("/:id/quest-status", getQuestOrderStatusAPI);
+router.get("/:id/report", getOrderReport);
 router.delete("/:id", deleteOrder);
 
 export default router;
