@@ -1,6 +1,7 @@
 import express from "express";
 import {
     createOrder,
+    createBatchOrder,
     previewOrder,
     getOrdersList,
     getOrderDetails,
@@ -17,6 +18,7 @@ const router = express.Router();
 router.use(employerAuth);
 
 router.post("/create", createOrder);
+router.post("/create-batch", createBatchOrder);
 router.post("/preview", previewOrder);
 router.post("/cancel", cancelOrder);
 router.get("/", getOrdersList);

@@ -25,7 +25,8 @@ export const signup = catchAsync(async (req, res, next) => {
 export const login = catchAsync(async (req, res, next) => {
     const { email, password } = req.body;
     
-    const clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    let clientIp = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+    if (clientIp === "::1" || clientIp === "::ffff:127.0.0.1") clientIp = "127.0.0.1";
     const { device, isMobile } = parseUserAgent(req.headers['user-agent']);
     const location = getIpLocation(clientIp);
 

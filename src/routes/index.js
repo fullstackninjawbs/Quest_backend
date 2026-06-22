@@ -5,6 +5,7 @@ import employerRoutes from "../modules/employer/routes/index.js";
 import testRoutes from "./test.routes.js";
 import billingRoutes from "../modules/employer/routes/billing.routes.js";
 import questRoutes from "../modules/quest/routes/questCallback.routes.js";
+import notificationsRoutes from "./notifications.routes.js";
 
 // 👑 Super Admin Module (Login, Dashboard, Stats)
 router.use("/superadmin", superAdminRoutes);
@@ -20,6 +21,7 @@ router.use("/quest", questRoutes);
 
 // ─── Other Routes ────────────────────────────────
 router.use("/test", testRoutes);
+router.use("/notifications", notificationsRoutes);
 
 // Legacy /auth and /admin endpoints are now removed or redirected by the blocks above
 

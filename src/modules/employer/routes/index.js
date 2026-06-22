@@ -9,6 +9,7 @@ import paymentRoutes from "./paymentRoutes.js";
 import savedPaymentRoutes from "./savedPaymentRoutes.js";
 import orderRoutes from "./order.routes.js";
 import securityRoutes from "./security.routes.js";
+import resultRoutes from "./result.routes.js";
 
 // Employer Authentication
 // Endpoints: /api/v1/employer/signup, /api/v1/employer/login, etc.
@@ -38,6 +39,9 @@ router.use("/orders", orderRoutes);
 
 // Employer Security Settings Endpoints
 router.use("/security", securityRoutes);
+
+// Results & Reports Endpoints
+router.use("/results", resultRoutes);
 
 export default router;
 

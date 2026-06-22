@@ -48,7 +48,8 @@ const employerAuth = catchAsync(async (req, res, next) => {
     const session = await Session.findOne({ token, userId: user._id });
     if (!session) {
         // Backward compatibility: Auto-create session if token is valid but session record is missing
-        const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+        let ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
+        if (ip === "::1" || ip === "::ffff:127.0.0.1") ip = "127.0.0.1";
         const userAgent = req.headers['user-agent'] || '';
         const { device, isMobile } = parseUserAgent(userAgent);
         const location = getIpLocation(ip);

@@ -103,6 +103,29 @@ const employerSchema = new mongoose.Schema(
             type: String,
             default: "",
         },
+        notificationsEnabled: {
+            type: Boolean,
+            default: true,
+        },
+        notificationPreferences: {
+            type: Object,
+            default: {
+                email_order_placed: false,
+                email_payment_confirmed: true,
+                email_scheduling_link: true,
+                email_appointment_scheduled: false,
+                email_appointment_reminder: false,
+                email_result_available: false,
+                email_positive_alert: false,
+                email_mro_review: false,
+                email_weekly_digest: false,
+                email_product_updates: false,
+                sms_appointment_reminder: false,
+                sms_result_available: true,
+                sms_mro_urgent: true,
+                inapp_all_events: false,
+            }
+        }
     },
     { timestamps: true }
 );

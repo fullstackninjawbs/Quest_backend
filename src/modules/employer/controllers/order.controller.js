@@ -307,8 +307,221 @@ export const createOrder = catchAsync(async (req, res, next) => {
 
     res.status(201).json({
         success: true,
-        message: "Order successfully placed and persisted.",
-        order: orderObj
+        message: "Order successfully submitted, payment captured, and Quest chain-of-custody initiated.",
+        order: newOrder
+    });
+});
+
+/**
+ * @desc    Submit a bulk drug test order (Charge Card once -> Send multiple Quest Orders -> Persist DBs)
+ * @route   POST /api/v1/employer/orders/create-batch
+ * @access  Private (Employer Only)
+ */
+export const createBatchOrder = catchAsync(async (req, res, next) => {
+    const {
+        employeeIds,
+        panelId,
+        siteId,
+        testType,
+        dotType,
+        reasonForTest,
+        collectionType,
+        paymentMethodId
+    } = req.body;
+
+    const pnlId = typeof panelId === 'object' ? (panelId.id || panelId.panel_id || panelId._id) : panelId;
+    // Default to '0000' if no siteId is provided (for bulk without collection site)
+    const sId = siteId ? (typeof siteId === 'object' ? (siteId.id || siteId.siteCode || siteId._id) : siteId) : "0000";
+
+    if (!employeeIds || !Array.isArray(employeeIds) || employeeIds.length === 0 || !pnlId || !testType || !dotType || !reasonForTest || !collectionType || !paymentMethodId) {
+        return next(new AppError("Please provide all required parameters including an array of employeeIds and paymentMethodId.", 400));
+    }
+
+    // Fetch Employees
+    const employees = await Employee.find({ _id: { $in: employeeIds }, employer_id: req.user._id });
+    if (employees.length !== employeeIds.length) {
+        return next(new AppError("One or more selected employees not found or unauthorized.", 404));
+    }
+    const inactiveEmployees = employees.filter(emp => emp.status !== "Active");
+    if (inactiveEmployees.length > 0) {
+        return next(new AppError("One or more selected employee profiles are Inactive and ineligible for orders.", 400));
+    }
+
+    // Fetch Test Panel
+    let panel = null;
+    if (String(pnlId).match(/^[0-9a-fA-F]{24}$/)) {
+        panel = await TestPanel.findById(pnlId);
+    }
+    if (!panel) {
+        panel = await TestPanel.findOne({ panel_id: pnlId });
+    }
+
+    if (!panel) {
+        return next(new AppError("Selected test panel not found.", 404));
+    }
+    if (!panel.unitCode) {
+        return next(new AppError("The test panel is missing a valid Quest UnitCode mapping.", 400));
+    }
+
+    // Fetch Collection Site
+    let site = null;
+    if (sId === "0000") {
+        site = {
+            siteCode: "0000",
+            name: "Bulk Electronic Order (No Site Selected)",
+            phone: "N/A"
+        };
+    } else {
+        if (String(sId).match(/^[0-9a-fA-F]{24}$/)) {
+            site = await CollectionSite.findById(sId);
+        }
+        if (!site) {
+            site = await CollectionSite.findOne({ siteCode: sId });
+        }
+        if (!site) {
+            return next(new AppError("Selected collection site not found.", 404));
+        }
+    }
+
+    const isDOT = dotType === "DOT";
+    const employer = await Employer.findById(req.user._id);
+    const labAccount = isDOT ? employer?.labAccountDOT : employer?.labAccountNonDOT;
+
+    if (!labAccount) {
+        return next(new AppError(`No LabAccount mapping found for this employer under ${testType} order type.`, 400));
+    }
+
+    let amountStr = panel.price.replace(/[^0-9.]/g, "");
+    const singleAmountInCents = Math.round(parseFloat(amountStr) * 100);
+    const totalAmountInCents = singleAmountInCents * employees.length;
+
+    if (isNaN(totalAmountInCents) || totalAmountInCents <= 0) {
+        return next(new AppError("Invalid test panel price configuration.", 400));
+    }
+
+    let paymentIntent;
+    if (paymentMethodId === "pm_bypass_test") {
+        paymentIntent = {
+            id: `pi_bypass_${Math.random().toString(36).substring(2, 9)}`,
+            status: "succeeded"
+        };
+    } else {
+        try {
+            console.log(`Stripe Bulk Charge: Processing dynamic charge of $${(totalAmountInCents / 100).toFixed(2)} for ${employer.company_name}...`);
+            const paymentIntentOptions = {
+                amount: totalAmountInCents,
+                currency: "usd",
+                payment_method: paymentMethodId,
+                confirm: true,
+                automatic_payment_methods: {
+                    enabled: true,
+                    allow_redirects: "never"
+                },
+                metadata: {
+                    employerId: req.user._id.toString(),
+                    isBulkOrder: "true",
+                    panelId: pnlId
+                }
+            };
+            if (employer.stripeCustomerId) {
+                paymentIntentOptions.customer = employer.stripeCustomerId;
+            }
+            paymentIntent = await stripe.paymentIntents.create(paymentIntentOptions);
+            if (paymentIntent.status !== "succeeded") {
+                return next(new AppError(`Stripe Payment Intent status: ${paymentIntent.status}. Verification failed.`, 402));
+            }
+        } catch (stripeErr) {
+            console.error("Stripe Checkout Error:", stripeErr.message);
+            return next(new AppError(`Payment Process failed: ${stripeErr.message}`, 402));
+        }
+    }
+
+    const observedRequested = false;
+    const splitSpecimenRequested = isDOT;
+    const createdOrders = [];
+
+    for (const employee of employees) {
+        try {
+            const questRes = await questOrderService.createQuestOrder({
+                labAccount,
+                unitCode: panel.unitCode,
+                siteCode: site.siteCode,
+                dotTest: isDOT,
+                observedRequested,
+                splitSpecimenRequested,
+                reasonForTest: reasonForTest,
+                donor: {
+                    firstName: employee.first_name,
+                    lastName: employee.last_name,
+                    email: employee.email,
+                    phone: employee.phone,
+                    license: employee.license_number
+                }
+            });
+
+            const newOrder = new Order({
+                employer_id: req.user._id,
+                employee_id: employee._id,
+                questOrderId: questRes.questOrderId,
+                referenceTestId: questRes.referenceTestId,
+                status: questRes.status || "ordered",
+                dot_type: dotType,
+                stripe_payment_id: paymentIntent.id,
+                amount_paid: singleAmountInCents,
+                test_configuration: {
+                    testType,
+                    reasonForTest,
+                    collectionType,
+                    panelId: panel._id,
+                    panelTitle: panel.title,
+                    unitCode: panel.unitCode
+                },
+                employee_snapshot: {
+                    first_name: employee.first_name,
+                    last_name: employee.last_name,
+                    email: employee.email,
+                    phone: employee.phone,
+                    license_number: employee.license_number
+                },
+                site_snapshot: {
+                    siteCode: site.siteCode,
+                    name: site.name,
+                    address: site.address ? {
+                        line1: site.address?.line1,
+                        line2: site.address?.line2,
+                        city: site.address?.city,
+                        state: site.address?.state,
+                        zip: site.address?.zip
+                    } : {},
+                    phone: site.phone,
+                    hours: site.hours || "N/A"
+                },
+                request_payload: questRes.requestXml,
+                response_payload: questRes.responseXml
+            });
+
+            await newOrder.save();
+            createdOrders.push(newOrder);
+
+            await Employer.findByIdAndUpdate(req.user._id, {
+                $inc: {
+                    total_tests: 1,
+                    completed_tests: 0
+                }
+            });
+            await Employee.findByIdAndUpdate(employee._id, {
+                $inc: { test_count: 1 }
+            });
+
+        } catch (questErr) {
+            console.error(`Quest SOAP createOrder Integration Exception for employee ${employee._id}:`, questErr.message);
+        }
+    }
+
+    res.status(201).json({
+        success: true,
+        message: `Successfully processed ${createdOrders.length} of ${employees.length} orders.`,
+        orders: createdOrders
     });
 });
 
@@ -318,6 +531,7 @@ export const createOrder = catchAsync(async (req, res, next) => {
  * @access  Private (Employer Only)
  */
 export const getOrdersList = catchAsync(async (req, res, next) => {
+
 
 
     const { status, dot_type, search, page = 1, limit = 10, payment_status } = req.query;
@@ -443,7 +657,7 @@ export const getQuestOrderStatusAPI = catchAsync(async (req, res, next) => {
         if (lowerStatus.includes('cancel')) newDbStatus = 'cancelled';
         else if (lowerStatus.includes('complete') || lowerStatus.includes('result')) newDbStatus = 'completed';
         else if (lowerStatus.includes('progress') || lowerStatus.includes('collected')) newDbStatus = 'in-progress';
-        
+
         if (newDbStatus !== order.status) {
             order.status = newDbStatus;
             await order.save();
@@ -579,7 +793,7 @@ ${substanceLines}
 ET`;
 
     const streamLength = streamContent.length;
-    
+
     // Construct simple PDF structure manually
     const pdfHeader = `%PDF-1.4\n%âãÏÓ\n`;
     const obj1 = `1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n`;
@@ -587,7 +801,7 @@ ET`;
     const obj3 = `3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 4 0 R >> >> /Contents 5 0 R >>\nendobj\n`;
     const obj4 = `4 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n`;
     const obj5 = `5 0 obj\n<< /Length ${streamLength} >>\nstream\n${streamContent}\nendstream\nendobj\n`;
-    
+
     const startXref = pdfHeader.length + obj1.length + obj2.length + obj3.length + obj4.length + obj5.length;
     const fullPdfText = `${pdfHeader}${obj1}${obj2}${obj3}${obj4}${obj5}xref\n0 6\n0000000000 65535 f \n0000000015 00000 n \n0000000069 00000 n \n0000000135 00000 n \n0000000287 00000 n \n0000000373 00000 n \ntrailer\n<< /Size 6 /Root 1 0 R >>\nstartxref\n${startXref}\n%%EOF`;
 

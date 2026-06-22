@@ -3,6 +3,7 @@ dotenv.config();
 import app from "./src/app.js";
 import connectDB from "./src/config/db.js";
 import { PORT } from "./src/config/env.js";
+import { initCronJobs } from "./src/services/cron.service.js";
 
 const startServer = async () => {
     try {
@@ -13,6 +14,9 @@ const startServer = async () => {
                 `Server running in ${process.env.NODE_ENV} mode on port ${PORT}`
             );
         });
+
+        // Start Cron Jobs
+        initCronJobs();
 
         // ─── Graceful Shutdown ────────────────────────────────────────────────────
         process.on("SIGTERM", () => {
