@@ -47,27 +47,12 @@ const employerAuth = catchAsync(async (req, res, next) => {
     // Session Verification
     const session = await Session.findOne({ token, userId: user._id });
     if (!session) {
-        // Backward compatibility: Auto-create session if token is valid but session record is missing
-        let ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress || '127.0.0.1';
-        if (ip === "::1" || ip === "::ffff:127.0.0.1") ip = "127.0.0.1";
-        const userAgent = req.headers['user-agent'] || '';
-        const { device, isMobile } = parseUserAgent(userAgent);
-        const location = getIpLocation(ip);
-        
-        await Session.create({
-            userId: user._id,
-            userModel: 'Employer',
-            token,
-            device,
-            ip,
-            location,
-            isMobile
-        });
-    } else {
-        // Update last active timestamp
-        session.lastActive = new Date();
-        await session.save();
+        return next(new AppError("Session has been revoked or expired. Please login again.", 401));
     }
+
+    // Update last active timestamp
+    session.lastActive = new Date();
+    await session.save();
 
     req.user = user;
     next();
