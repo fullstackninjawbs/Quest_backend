@@ -73,52 +73,40 @@ class QuestOrderService {
     // The <OrderXml> contains a nested XML document <CreateOrderTest>.
 
     const orderXmlString = `<?xml version="1.0"?>
-<CreateOrderTest>
-  <SendingFacility>Demo</SendingFacility>
-  <SendingFacilityTimeZone>-5</SendingFacilityTimeZone>
-  <ProcessType>P</ProcessType>
-  <ClientReferenceID>REQ-${Math.floor(Date.now() / 1000)}</ClientReferenceID>
-  <PersonalData>
-    <PrimaryID>${donor.license || Math.floor(Math.random() * 1000000000)}</PrimaryID>
-    <PrimaryIDType>EID</PrimaryIDType>
-    <PersonName>
-      <GivenName>${donor.firstName}</GivenName>
-      <MiddleName />
-      <FamilyName>${donor.lastName}</FamilyName>
-    </PersonName>
-    <DateofBirth>1990/01/01</DateofBirth>
-    <Gender><IdValue /></Gender>
-    <ContactMethod>
-      <Telephone type="Home">
-        <FormattedNumber>${(donor.phone || "0000000000").replace(/[^0-9]/g, '')}</FormattedNumber>
-      </Telephone>
-      <email>${donor.email || ""}</email>
-    </ContactMethod>
-  </PersonalData>
-  <Screenings>
-    <WhoOrderedTest>Employer</WhoOrderedTest>
-    <DateOrdered />
+<Order>
+  <EventInfo>
     <CollectionSiteID>${siteCode}</CollectionSiteID>
-    <ReasonForTest>
-      <IdValue>${reasonForTest === "Post Accident" ? 2 : reasonForTest === "Random" ? 3 : 1}</IdValue>
-      <IdName>${reasonForTest.toUpperCase().replace(' ', '-')}</IdName>
-    </ReasonForTest>
-    <Screening type="Drug">
-      <DOTTest>${dotTest ? 'Y' : 'N'}</DOTTest>
-      <RequestObservation>${observedRequested ? 'Y' : 'N'}</RequestObservation>
-      <RequestSplitSample>${splitSpecimenRequested ? 'Y' : 'N'}</RequestSplitSample>
-      <TestProcedure>
-        <IdSampleType>UR</IdSampleType>
-        <IdTestMethod>LAB</IdTestMethod>
-      </TestProcedure>
+    <EmailAuthorizationAddresses>
+      <EmailAddress>${donor.email || ""}</EmailAddress>
+    </EmailAuthorizationAddresses>
+  </EventInfo>
+  <DonorInfo>
+    <FirstName>${donor.firstName}</FirstName>
+    <MiddleName />
+    <LastName>${donor.lastName}</LastName>
+    <PrimaryID>${donor.license || Math.floor(Math.random() * 1000000000)}</PrimaryID>
+    <DOB>01/01/1990</DOB>
+    <PrimaryPhone>${(donor.phone || "0000000000").replace(/[^0-9]/g, '')}</PrimaryPhone>
+  </DonorInfo>
+  <ClientInfo>
+    <ContactName>ASC Admin</ContactName>
+    <TelephoneNumber>0000000000</TelephoneNumber>
+    <LabAccount>${labAccount}</LabAccount>
+    <CSL>N/P</CSL>
+  </ClientInfo>
+  <TestInfo>
+    <ClientReferenceID>REQ-${Math.floor(Date.now() / 1000)}</ClientReferenceID>
+    <DOTTest>${dotTest ? 'T' : 'F'}</DOTTest>
+    <ReasonForTestID>${reasonForTest === "Post Accident" ? 2 : reasonForTest === "Random" ? 3 : 1}</ReasonForTestID>
+    <ObservedRequested>${observedRequested ? 'Y' : 'N'}</ObservedRequested>
+    <SplitSpecimenRequested>${splitSpecimenRequested ? 'Y' : 'N'}</SplitSpecimenRequested>
+    <Screenings>
       <UnitCodes>
-        <IdValue>${unitCode}</IdValue>
+        <UnitCode>${unitCode}</UnitCode>
       </UnitCodes>
-      <LaboratoryID>QUEST</LaboratoryID>
-      <LaboratoryAccount>${labAccount}</LaboratoryAccount>
-    </Screening>
-  </Screenings>
-</CreateOrderTest>`;
+    </Screenings>
+  </TestInfo>
+</Order>`;
 
     // Escape the nested XML so it can be passed safely as a string inside <OrderXml>
     const escapedOrderXml = orderXmlString
@@ -133,6 +121,10 @@ class QuestOrderService {
       <password>${this.password}</password>
       <OrderXml>${escapedOrderXml}</OrderXml>
     </CreateOrder>`;
+
+    console.log("=== QUEST ORDER XML BEING SENT ===");
+    console.log(orderXmlString);
+    console.log("==================================");
 
     // Emulate Quest response during sandbox downtime / invalid credentials if configured
     if (process.env.QUEST_MOCK_SOAP === "true" || !this.username) {
@@ -151,6 +143,9 @@ class QuestOrderService {
         const fault = soapBody?.["soap:Fault"]?.[0];
         const faultString = fault?.faultstring?.[0] || "Unknown SOAP Fault";
         console.error("Quest SOAP SOAPAction Fault returned:", faultString);
+        console.log("=== FULL RAW FAULT DETAILS ===");
+        console.log(JSON.stringify(fault, null, 2));
+        console.log("==============================");
 
         // Fallback to mock so UAT remains fully testable even if Quest's external sandbox is down
         console.log("QuestOrderService: falling back to UAT Mock Response for client test continuity.");

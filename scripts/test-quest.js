@@ -2,33 +2,37 @@ import dotenv from "dotenv";
 import path from "path";
 import { fileURLToPath } from 'url';
 
-// Fix __dirname in ES Modules so dotenv can find the .env file in the parent folder
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 dotenv.config({ path: path.join(__dirname, "../.env") });
 
-import mongoose from "mongoose";
-import Order from "../src/modules/employer/models/order.model.js";
 import questOrderService from "../src/services/questOrder.service.js";
 
-async function check() {
+async function run() {
   try {
-    await mongoose.connect(process.env.MONGO_URI);
-    const order = await Order.findOne({ questOrderId: "QST48245046" });
-    if (!order) {
-      console.log("Order not found in MongoDB!");
-      process.exit(0);
-    }
-    console.log("✅ Order found in local MongoDB. Quest Order ID:", order.questOrderId);
-    console.log("✅ Order Number:", order.order_number);
+    process.env.QUEST_MOCK_SOAP = "false";
+
+    const testOrderData = {
+      labAccount: process.env.QUEST_GLOBAL_LAB_ACCOUNT_NONDOT || "12345678",
+      unitCode: "45105N",
+      siteCode: "07410",
+      dotTest: false,
+      reasonForTest: "Pre Employment",
+      donor: {
+        firstName: "TestFirst",
+        lastName: "TestLast",
+        phone: "9135551212",
+        email: "test@example.com",
+        license: "KS1111111"
+      }
+    };
     
-    console.log("\n📡 Pinging Quest Sandbox API for real-time status...");
-    const status = await questOrderService.getQuestOrderStatus(order.questOrderId);
-    console.log("✅ Response from Quest:", status);
-    process.exit(0);
+    console.log("Sending Test Order...");
+    const result = await questOrderService.createQuestOrder(testOrderData);
+    console.log("Done.");
   } catch (err) {
-    console.error("Error:", err);
-    process.exit(1);
+    console.error("Fatal Error:", err);
   }
+  process.exit(0);
 }
-check();
+run();
