@@ -7,7 +7,7 @@ import { parseStringPromise } from "xml2js";
  */
 class QuestOrderService {
   constructor() {
-    this.url = process.env.QUEST_UAT_ORDER_URL || "https://qcs-uat.questdiagnostics.com/services/OrderService.asmx";
+    this.url = process.env.QUEST_UAT_ORDER_URL || "https://qcs-uat.questdiagnostics.com/services/ESPService.asmx";
     this.username = process.env.QUEST_UAT_USERNAME || "cli_AmericanScreeningUAT";
     this.password = process.env.QUEST_UAT_PASSWORD || "83kAN6Nd6me6";
   }

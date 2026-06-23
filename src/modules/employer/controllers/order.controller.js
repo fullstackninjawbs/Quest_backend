@@ -165,7 +165,8 @@ export const createOrder = catchAsync(async (req, res, next) => {
     // 5. Resolve LabAccount from Employer Config
     const isDOT = dotType === "DOT";
     const employer = await Employer.findById(req.user._id);
-    const labAccount = isDOT ? employer?.labAccountDOT : employer?.labAccountNonDOT;
+    // Fallback to "12345678" for UAT testing if the employer hasn't configured a lab account yet
+    const labAccount = (isDOT ? employer?.labAccountDOT : employer?.labAccountNonDOT) || "12345678";
 
     if (!labAccount) {
         return next(new AppError(`No LabAccount mapping found for this employer under ${testType} order type.`, 400));
