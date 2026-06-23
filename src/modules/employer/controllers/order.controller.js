@@ -627,49 +627,6 @@ export const getOrderDetails = catchAsync(async (req, res, next) => {
     });
 });
 
-/**
- * @desc    Get real-time order status from Quest SOAP API
- * @route   GET /api/v1/employer/orders/:id/quest-status
- * @access  Private (Employer Only)
- */
-export const getQuestOrderStatusAPI = catchAsync(async (req, res, next) => {
-    const order = await Order.findById(req.params.id);
-
-    if (!order) {
-        return next(new AppError("Order record not found.", 404));
-    }
-
-    if (order.employer_id.toString() !== req.user._id.toString()) {
-        return next(new AppError("You do not have permission to access this order.", 403));
-    }
-
-    if (!order.questOrderId) {
-        return next(new AppError("This order has no associated Quest Order ID.", 400));
-    }
-
-    const questStatusRes = await questOrderService.getQuestOrderStatus(order.questOrderId);
-
-    // Optionally update local DB status if Quest says it's Completed, Cancelled, etc.
-    if (questStatusRes.success && questStatusRes.status) {
-        // Simple mapping example:
-        const lowerStatus = questStatusRes.status.toLowerCase();
-        let newDbStatus = order.status;
-
-        if (lowerStatus.includes('cancel')) newDbStatus = 'cancelled';
-        else if (lowerStatus.includes('complete') || lowerStatus.includes('result')) newDbStatus = 'completed';
-        else if (lowerStatus.includes('progress') || lowerStatus.includes('collected')) newDbStatus = 'in-progress';
-
-        if (newDbStatus !== order.status) {
-            order.status = newDbStatus;
-            await order.save();
-        }
-    }
-
-    res.status(200).json({
-        success: true,
-        questStatus: questStatusRes
-    });
-});
 
 /**
  * @desc    Cancel/Void an existing order

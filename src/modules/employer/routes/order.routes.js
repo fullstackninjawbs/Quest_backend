@@ -5,7 +5,6 @@ import {
     previewOrder,
     getOrdersList,
     getOrderDetails,
-    getQuestOrderStatusAPI,
     cancelOrder,
     deleteOrder,
     getOrderReport
@@ -23,7 +22,6 @@ router.post("/preview", previewOrder);
 router.post("/cancel", cancelOrder);
 router.get("/", getOrdersList);
 router.get("/:id", getOrderDetails);
-router.get("/:id/quest-status", getQuestOrderStatusAPI);
 router.get("/:id/report", getOrderReport);
 router.delete("/:id", deleteOrder);
 
