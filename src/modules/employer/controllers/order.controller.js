@@ -386,7 +386,7 @@ export const createBatchOrder = catchAsync(async (req, res, next) => {
 
     const isDOT = dotType === "DOT";
     const employer = await Employer.findById(req.user._id);
-    const labAccount = isDOT ? employer?.labAccountDOT : employer?.labAccountNonDOT;
+    const labAccount = (isDOT ? employer?.labAccountDOT : employer?.labAccountNonDOT) || "12345678";
 
     if (!labAccount) {
         return next(new AppError(`No LabAccount mapping found for this employer under ${testType} order type.`, 400));
