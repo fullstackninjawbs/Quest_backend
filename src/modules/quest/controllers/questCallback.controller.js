@@ -339,8 +339,6 @@ export const handleQuestCallback = async (req, res) => {
         );
         if (mroNameRaw) {
             order.mro_name = mroNameRaw;
-        } else if (order.mro_verified && !order.mro_name) {
-            order.mro_name = "Dr. Robert Carter, MD"; // Standard default placeholder matching mock layout
         }
 
         // Save status change or auditing payload details

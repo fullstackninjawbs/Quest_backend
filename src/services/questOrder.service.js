@@ -126,10 +126,7 @@ class QuestOrderService {
     console.log(orderXmlString);
     console.log("==================================");
 
-    // Emulate Quest response during sandbox downtime / invalid credentials if configured
-    if (process.env.QUEST_MOCK_SOAP === "true" || !this.username) {
-      return this._getMockCreateResponse(orderData, bodyXml);
-    }
+    console.log("==================================");
 
     try {
       const soapRes = await this._soapRequest("CreateOrder", bodyXml);
@@ -147,9 +144,7 @@ class QuestOrderService {
         console.log(JSON.stringify(fault, null, 2));
         console.log("==============================");
 
-        // Fallback to mock so UAT remains fully testable even if Quest's external sandbox is down
-        console.log("QuestOrderService: falling back to UAT Mock Response for client test continuity.");
-        return this._getMockCreateResponse(orderData, bodyXml, faultString);
+        throw new Error(`Quest SOAP SOAPAction Fault returned: ${faultString}`);
       }
 
       const createRes = soapBody?.["CreateOrderResponse"]?.[0]?.["CreateOrderResult"]?.[0];
@@ -170,8 +165,7 @@ class QuestOrderService {
 
     } catch (error) {
       console.error("Quest CreateOrder Integration Error:", error.message);
-      // Dynamic Mock fallback to ensure UAT testing does not block if external service is unreachable
-      return this._getMockCreateResponse(orderData, bodyXml, error.message);
+      throw error;
     }
   }
 
@@ -187,10 +181,6 @@ class QuestOrderService {
       <questOrderId>${questOrderId}</questOrderId>
       <referenceTestId>${referenceTestId || ""}</referenceTestId>
     </CancelOrder>`;
-
-    if (process.env.QUEST_MOCK_SOAP === "true" || !this.username) {
-      return this._getMockCancelResponse(questOrderId, bodyXml);
-    }
 
     try {
       const soapRes = await this._soapRequest("CancelOrder", bodyXml);
@@ -216,55 +206,12 @@ class QuestOrderService {
         responseXml: soapRes.xml
       };
     } catch (error) {
-      console.warn("Quest CancelOrder Integration Error (Using mock fallback):", error.message);
-      return this._getMockCancelResponse(questOrderId, bodyXml);
+      console.error("Quest CancelOrder Integration Error:", error.message);
+      throw error;
     }
   }
 
 
-  /**
-   * Mocks high-fidelity XML responses to keep manual checkout and cancellations fully functional during offline testing.
-   */
-  _getMockCreateResponse(orderData, requestXml, warningMsg = "") {
-    const randId = Math.floor(10000000 + Math.random() * 90000000);
-    const refId = Math.floor(100000 + Math.random() * 900000).toString(16).toUpperCase();
-
-    const mockResponseXml = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <CreateOrderResponse xmlns="http://wssim.labone.com/">
-      <CreateOrderResult>&lt;OrderResult&gt;&lt;Status&gt;Success&lt;/Status&gt;&lt;QuestOrderID&gt;QST${randId}&lt;/QuestOrderID&gt;&lt;ReferenceTestID&gt;${refId}&lt;/ReferenceTestID&gt;&lt;/OrderResult&gt;</CreateOrderResult>
-    </CreateOrderResponse>
-  </soap:Body>
-</soap:Envelope>`;
-
-    console.log(`QuestOrderService: ${warningMsg ? `Warning: ${warningMsg}. ` : ""}Mocking Quest order confirmation response.`);
-
-    return {
-      questOrderId: `QST${randId}`,
-      referenceTestId: refId,
-      status: "ordered",
-      requestXml: requestXml,
-      responseXml: mockResponseXml
-    };
-  }
-
-  _getMockCancelResponse(questOrderId, requestXml) {
-    const mockResponseXml = `<?xml version="1.0" encoding="utf-8"?>
-<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/">
-  <soap:Body>
-    <CancelOrderResponse xmlns="http://wssim.labone.com/">
-      <CancelOrderResult>&lt;CancelResult&gt;&lt;Status&gt;Success&lt;/Status&gt;&lt;QuestOrderID&gt;${questOrderId}&lt;/QuestOrderID&gt;&lt;/CancelResult&gt;</CancelOrderResult>
-    </CancelOrderResponse>
-  </soap:Body>
-</soap:Envelope>`;
-
-    return {
-      success: true,
-      requestXml: requestXml,
-      responseXml: mockResponseXml
-    };
-  }
 
 
 }
