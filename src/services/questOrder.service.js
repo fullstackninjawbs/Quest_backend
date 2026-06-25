@@ -1,5 +1,7 @@
 import axios from "axios";
 import { parseStringPromise } from "xml2js";
+import fs from "fs";
+import path from "path";
 
 /**
  * Service to handle Quest Diagnostics Order Placement and Cancellations.
@@ -65,6 +67,7 @@ class QuestOrderService {
       observedRequested = false,
       splitSpecimenRequested = false,
       reasonForTest = "Pre Employment",
+      testingAuthority,
       donor
     } = orderData;
 
@@ -73,63 +76,112 @@ class QuestOrderService {
     // The <OrderXml> contains a nested XML document <CreateOrderTest>.
 
     const orderXmlString = `<?xml version="1.0"?>
-<Order>
-  <EventInfo>
-    <CollectionSiteID>${siteCode}</CollectionSiteID>
-    <EmailAuthorizationAddresses>
-      <EmailAddress>${donor.email || ""}</EmailAddress>
-    </EmailAuthorizationAddresses>
-  </EventInfo>
-  <DonorInfo>
-    <FirstName>${donor.firstName}</FirstName>
-    <MiddleName />
-    <LastName>${donor.lastName}</LastName>
-    <PrimaryID>${donor.license || Math.floor(Math.random() * 1000000000)}</PrimaryID>
-    <DOB>01/01/1990</DOB>
-    <PrimaryPhone>${(donor.phone || "0000000000").replace(/[^0-9]/g, '')}</PrimaryPhone>
-  </DonorInfo>
-  <ClientInfo>
-    <ContactName>ASC Admin</ContactName>
-    <TelephoneNumber>0000000000</TelephoneNumber>
-    <LabAccount>${labAccount}</LabAccount>
-    <CSL>N/P</CSL>
-  </ClientInfo>
-  <TestInfo>
-    <ClientReferenceID>REQ-${Math.floor(Date.now() / 1000)}</ClientReferenceID>
-    <DOTTest>${dotTest ? 'T' : 'F'}</DOTTest>
-    <ReasonForTestID>${reasonForTest === "Post Accident" ? 2 : reasonForTest === "Random" ? 3 : 1}</ReasonForTestID>
-    <ObservedRequested>${observedRequested ? 'Y' : 'N'}</ObservedRequested>
-    <SplitSpecimenRequested>${splitSpecimenRequested ? 'Y' : 'N'}</SplitSpecimenRequested>
-    <Screenings>
-      <UnitCodes>
-        <UnitCode>${unitCode}</UnitCode>
-      </UnitCodes>
-    </Screenings>
-  </TestInfo>
-</Order>`;
+    <Order>
+      <EventInfo>
+        <CollectionSiteID>${siteCode || ""}</CollectionSiteID>
+        <EndDateTime></EndDateTime>
+        <EndDateTimeTimeZoneID></EndDateTimeTimeZoneID>
+        <EmailAuthorizationAddresses>
+          <EmailAddress>${donor.email || ""}</EmailAddress>
+        </EmailAuthorizationAddresses>
+      </EventInfo>
+      <DonorInfo>
+        <FirstName>${donor.firstName || "Unknown"}</FirstName>
+        <MiddleName></MiddleName>
+        <LastName>${donor.lastName || "Unknown"}</LastName>
+        <PrimaryID>${donor.license || Math.floor(Math.random() * 1000000000)}</PrimaryID>
+        <PrimaryIDType>EIN</PrimaryIDType>
+        <DOB>${donor.dob ? donor.dob.replace(/-/g, '/') : '1990/01/01'}</DOB>
+        <PrimaryPhone>${(donor.phone || "0000000000").replace(/[^0-9]/g, '').padStart(10, '0').substring(0, 10)}</PrimaryPhone>
+        <SecondaryPhone></SecondaryPhone>
+      </DonorInfo>
+      <ClientInfo>
+        <ContactName>ASC Admin</ContactName>
+        <TelephoneNumber>0000000000</TelephoneNumber>
+        <LabAccount>${labAccount}</LabAccount>
+        <CSL></CSL>
+      </ClientInfo>
+      <TestInfo>
+        <ClientReferenceID>REQ-${Math.floor(Date.now() / 1000)}</ClientReferenceID>
+        <DOTTest>${dotTest ? 'Y' : 'N'}</DOTTest>
+        <TestingAuthority>${dotTest ? (testingAuthority || 'FMCSA') : ''}</TestingAuthority>
+        <ReasonForTestID>${reasonForTest === "Post Accident" ? 2 : reasonForTest === "Random" ? 3 : 1}</ReasonForTestID>
+        <PhysicalReasonForTestID></PhysicalReasonForTestID>
+        <ObservedRequested>${observedRequested ? 'Y' : 'N'}</ObservedRequested>
+        <SplitSpecimenRequested>${splitSpecimenRequested ? 'Y' : 'N'}</SplitSpecimenRequested>
+        <CSOs></CSOs>
+        <OrderComments></OrderComments>
+        <Screenings>
+          <UnitCodes>
+            <UnitCode>${unitCode}</UnitCode>
+          </UnitCodes>
+        </Screenings>
+      </TestInfo>
+      <ClientCustom>
+        <ResponseURL></ResponseURL>
+      </ClientCustom>
+    </Order>`;
 
-    // Escape the nested XML so it can be passed safely as a string inside <OrderXml>
-    const escapedOrderXml = orderXmlString
-      .replace(/&/g, '&amp;')
-      .replace(/</g, '&lt;')
-      .replace(/>/g, '&gt;')
-      .replace(/"/g, '&quot;')
-      .replace(/'/g, '&apos;');
 
+    // Wrap the nested XML in CDATA so it is passed safely without entity encoding.
+    // NOTE: Quest expects the tag to be lowercase <orderXml> - this is case-sensitive!
     const bodyXml = `<CreateOrder xmlns="http://wssim.labone.com/">
       <username>${this.username}</username>
       <password>${this.password}</password>
-      <OrderXml>${escapedOrderXml}</OrderXml>
+      <orderXml><![CDATA[${orderXmlString}]]></orderXml>
     </CreateOrder>`;
 
-    console.log("=== QUEST ORDER XML BEING SENT ===");
-    console.log(orderXmlString);
-    console.log("==================================");
+    // Optional: Format XML for better console readability
+    const formatXml = (xml) => {
+      let formatted = '';
+      let reg = /(>)(<)(\/*)/g;
+      xml = xml.replace(reg, '$1\r\n$2$3');
+      let pad = 0;
+      xml.split('\r\n').forEach(function (node) {
+        let indent = 0;
+        if (node.match(/.+<\/\w[^>]*>$/)) {
+          indent = 0;
+        } else if (node.match(/^<\/\w/)) {
+          if (pad != 0) { pad -= 1; }
+        } else if (node.match(/^<\w([^>]*[^\/])?>.*$/)) {
+          indent = 1;
+        } else {
+          indent = 0;
+        }
+        let padding = '';
+        for (let i = 0; i < pad; i++) { padding += '  '; }
+        formatted += padding + node + '\r\n';
+        pad += indent;
+      });
+      return formatted.trim();
+    };
 
-    console.log("==================================");
+    const formattedOrderXml = formatXml(orderXmlString);
+    const formattedSoapBody = formatXml(bodyXml);
+
+    console.log("\n\n\x1b[36m=== [START] QUEST ORDER XML PAYLOAD BEING SENT ===\x1b[0m");
+    console.log(formattedOrderXml);
+    console.log("\x1b[36m=== [END] QUEST ORDER XML PAYLOAD ===\x1b[0m\n");
+
+    // Write it to a file so it's super easy to read with VSCode formatting
+    try {
+      const logPath = path.resolve(process.cwd(), "latest_quest_request.xml");
+      fs.writeFileSync(logPath, formattedSoapBody);
+      console.log(`\x1b[32m[!] The full SOAP envelope has been saved to: ${logPath}\x1b[0m`);
+      console.log(`\x1b[32m[!] You can open this file in your editor to perfectly view the structure.\x1b[0m\n\n`);
+    } catch (err) {
+      console.log("Could not write XML to file for debugging.");
+    }
 
     try {
       const soapRes = await this._soapRequest("CreateOrder", bodyXml);
+
+      // ── LOG RAW SOAP RESPONSE ──────────────────────────────────────────────
+      console.log("\n\x1b[35m=== [START] QUEST RAW SOAP RESPONSE ===\x1b[0m");
+      console.log(soapRes.xml);
+      console.log("\x1b[35m=== [END] QUEST RAW SOAP RESPONSE ===\x1b[0m\n");
+      // ──────────────────────────────────────────────────────────────────────
+
       const parsedResult = await parseStringPromise(soapRes.xml);
 
       // Validate SOAP Response structure

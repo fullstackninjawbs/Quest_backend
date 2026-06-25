@@ -234,7 +234,7 @@ export const createOrder = catchAsync(async (req, res, next) => {
         questRes = await questOrderService.createQuestOrder({
             labAccount,
             unitCode: panel.unitCode,
-            siteCode: site.siteCode,
+            siteCode: (collectionType || "").toLowerCase().includes("physical") ? "" : site.siteCode,
             dotTest: isDOT,
             observedRequested,
             splitSpecimenRequested,
@@ -330,8 +330,8 @@ export const createBatchOrder = catchAsync(async (req, res, next) => {
     } = req.body;
 
     const pnlId = typeof panelId === 'object' ? (panelId.id || panelId.panel_id || panelId._id) : panelId;
-    // Default to '0000' if no siteId is provided (for bulk without collection site)
-    const sId = siteId ? (typeof siteId === 'object' ? (siteId.id || siteId.siteCode || siteId._id) : siteId) : "0000";
+    // siteId is optional for batch orders — Quest accepts an empty CollectionSiteID
+    const sId = siteId ? (typeof siteId === 'object' ? (siteId.id || siteId.siteCode || siteId._id) : siteId) : null;
 
     if (!employeeIds || !Array.isArray(employeeIds) || employeeIds.length === 0 || !pnlId || !testType || !dotType || !reasonForTest || !collectionType || !paymentMethodId) {
         return next(new AppError("Please provide all required parameters including an array of employeeIds and paymentMethodId.", 400));
@@ -363,15 +363,9 @@ export const createBatchOrder = catchAsync(async (req, res, next) => {
         return next(new AppError("The test panel is missing a valid Quest UnitCode mapping.", 400));
     }
 
-    // Fetch Collection Site
+    // Fetch Collection Site (optional for batch — Quest accepts an empty CollectionSiteID)
     let site = null;
-    if (sId === "0000") {
-        site = {
-            siteCode: "0000",
-            name: "Bulk Electronic Order (No Site Selected)",
-            phone: "N/A"
-        };
-    } else {
+    if (sId) {
         if (String(sId).match(/^[0-9a-fA-F]{24}$/)) {
             site = await CollectionSite.findById(sId);
         }
@@ -439,13 +433,20 @@ export const createBatchOrder = catchAsync(async (req, res, next) => {
     const observedRequested = false;
     const splitSpecimenRequested = isDOT;
     const createdOrders = [];
+    const totalEmployees = employees.length;
 
-    for (const employee of employees) {
+    console.log(`\n\x1b[33m${'='.repeat(60)}\x1b[0m`);
+    console.log(`\x1b[33m  BATCH ORDER START — ${totalEmployees} employee(s) to process\x1b[0m`);
+    console.log(`\x1b[33m${'='.repeat(60)}\x1b[0m\n`);
+
+    for (const [idx, employee] of employees.entries()) {
+        const employeeLabel = `${employee.first_name} ${employee.last_name} (ID: ${employee._id})`;
+        console.log(`\n\x1b[36m--- [${idx + 1}/${totalEmployees}] Processing: ${employeeLabel} ---\x1b[0m`);
         try {
             const questRes = await questOrderService.createQuestOrder({
                 labAccount,
                 unitCode: panel.unitCode,
-                siteCode: site.siteCode,
+                siteCode: site ? site.siteCode : "",
                 dotTest: isDOT,
                 observedRequested,
                 splitSpecimenRequested,
@@ -483,7 +484,7 @@ export const createBatchOrder = catchAsync(async (req, res, next) => {
                     phone: employee.phone,
                     license_number: employee.license_number
                 },
-                site_snapshot: {
+                site_snapshot: site ? {
                     siteCode: site.siteCode,
                     name: site.name,
                     address: site.address ? {
@@ -495,13 +496,18 @@ export const createBatchOrder = catchAsync(async (req, res, next) => {
                     } : {},
                     phone: site.phone,
                     hours: site.hours || "N/A"
-                },
+                } : {},
                 request_payload: questRes.requestXml,
                 response_payload: questRes.responseXml
             });
 
             await newOrder.save();
             createdOrders.push(newOrder);
+
+            console.log(`\x1b[32m  ✔ SUCCESS [${idx + 1}/${totalEmployees}] ${employee.first_name} ${employee.last_name}\x1b[0m`);
+            console.log(`\x1b[32m    Quest Order ID   : ${questRes.questOrderId}\x1b[0m`);
+            console.log(`\x1b[32m    Reference Test ID: ${questRes.referenceTestId}\x1b[0m`);
+            console.log(`\x1b[32m    DB Order ID      : ${newOrder._id}\x1b[0m\n`);
 
             await Employer.findByIdAndUpdate(req.user._id, {
                 $inc: {
@@ -514,9 +520,14 @@ export const createBatchOrder = catchAsync(async (req, res, next) => {
             });
 
         } catch (questErr) {
-            console.error(`Quest SOAP createOrder Integration Exception for employee ${employee._id}:`, questErr.message);
+            console.error(`\x1b[31m  ✖ FAILED  [${idx + 1}/${totalEmployees}] ${employee.first_name} ${employee.last_name}\x1b[0m`);
+            console.error(`\x1b[31m    Error: ${questErr.message}\x1b[0m\n`);
         }
     }
+
+    console.log(`\n\x1b[33m${'='.repeat(60)}\x1b[0m`);
+    console.log(`\x1b[33m  BATCH ORDER COMPLETE — ${createdOrders.length}/${totalEmployees} succeeded\x1b[0m`);
+    console.log(`\x1b[33m${'='.repeat(60)}\x1b[0m\n`);
 
     res.status(201).json({
         success: true,

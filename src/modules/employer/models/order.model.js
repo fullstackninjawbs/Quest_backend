@@ -65,8 +65,8 @@ const orderSchema = new mongoose.Schema(
             license_number: { type: String }
         },
         site_snapshot: {
-            siteCode: { type: String, required: true },
-            name: { type: String, required: true },
+            siteCode: { type: String },
+            name: { type: String },
             address: {
                 line1: String,
                 line2: String,

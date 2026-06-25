@@ -1,0 +1,63 @@
+<CreateOrder xmlns="http://wssim.labone.com/">
+      <username>cli_AmericanScreeningUAT</username>
+      <password>83kAN6Nd6me6</password>
+      <orderXml>
+<![CDATA[<?xml version="1.0"?>
+    <Order>
+      <EventInfo>
+        <CollectionSiteID>
+</CollectionSiteID>
+        <EndDateTime>
+</EndDateTime>
+        <EndDateTimeTimeZoneID>
+</EndDateTimeTimeZoneID>
+        <EmailAuthorizationAddresses>
+          <EmailAddress>fullstackninja.wbs@gmail.com</EmailAddress>
+        </EmailAuthorizationAddresses>
+      </EventInfo>
+      <DonorInfo>
+        <FirstName>fullstack</FirstName>
+        <MiddleName>
+</MiddleName>
+        <LastName>ninja</LastName>
+        <PrimaryID>LC-1427</PrimaryID>
+        <PrimaryIDType>EIN</PrimaryIDType>
+        <DOB>1990/01/01</DOB>
+        <PrimaryPhone>1555123456</PrimaryPhone>
+        <SecondaryPhone>
+</SecondaryPhone>
+      </DonorInfo>
+      <ClientInfo>
+        <ContactName>ASC Admin</ContactName>
+        <TelephoneNumber>0000000000</TelephoneNumber>
+        <LabAccount>11321272</LabAccount>
+        <CSL>
+</CSL>
+      </ClientInfo>
+      <TestInfo>
+        <ClientReferenceID>REQ-1782384581</ClientReferenceID>
+        <DOTTest>N</DOTTest>
+        <TestingAuthority>
+</TestingAuthority>
+        <ReasonForTestID>1</ReasonForTestID>
+        <PhysicalReasonForTestID>
+</PhysicalReasonForTestID>
+        <ObservedRequested>N</ObservedRequested>
+        <SplitSpecimenRequested>N</SplitSpecimenRequested>
+        <CSOs>
+</CSOs>
+        <OrderComments>
+</OrderComments>
+        <Screenings>
+          <UnitCodes>
+            <UnitCode>65105N</UnitCode>
+          </UnitCodes>
+        </Screenings>
+      </TestInfo>
+      <ClientCustom>
+        <ResponseURL>
+</ResponseURL>
+      </ClientCustom>
+    </Order>]]>
+</orderXml>
+    </CreateOrder>
