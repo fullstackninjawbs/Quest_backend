@@ -196,6 +196,7 @@ export const createOrder = catchAsync(async (req, res, next) => {
                 currency: "usd",
                 payment_method: paymentMethodId,
                 confirm: true,
+                capture_method: "manual",
                 automatic_payment_methods: {
                     enabled: true,
                     allow_redirects: "never"
@@ -213,7 +214,7 @@ export const createOrder = catchAsync(async (req, res, next) => {
 
             paymentIntent = await stripe.paymentIntents.create(paymentIntentOptions);
 
-            if (paymentIntent.status !== "succeeded") {
+            if (paymentIntent.status !== "succeeded" && paymentIntent.status !== "requires_capture") {
                 return next(new AppError(`Stripe Payment Intent status: ${paymentIntent.status}. Verification failed.`, 402));
             }
             console.log("Stripe Charge Succeeded: Transaction ID:", paymentIntent.id);
@@ -248,8 +249,33 @@ export const createOrder = catchAsync(async (req, res, next) => {
             }
         });
     } catch (questErr) {
+        if (paymentIntent && paymentIntent.id && paymentIntent.status === "requires_capture" && paymentMethodId !== "pm_bypass_test") {
+            try {
+                await stripe.paymentIntents.cancel(paymentIntent.id);
+                console.log(`Stripe Authorization Cancelled for payment intent ${paymentIntent.id} due to Quest error.`);
+            } catch (cancelErr) {
+                console.error(`Failed to cancel Stripe authorization: ${cancelErr.message}`);
+            }
+        }
         console.error("Quest SOAP createOrder Integration Exception:", questErr.message);
-        return next(new AppError(`Quest diagnostics API order submission exception: ${questErr.message}`, 502));
+        return next(new AppError(`${questErr.message}`, 400));
+    }
+
+    // Capture the Stripe payment if Quest succeeded
+    if (paymentIntent && paymentIntent.id && paymentIntent.status === "requires_capture" && paymentMethodId !== "pm_bypass_test") {
+        try {
+            await stripe.paymentIntents.capture(paymentIntent.id);
+            console.log(`Stripe Charge Captured for payment intent ${paymentIntent.id}.`);
+        } catch (captureErr) {
+            console.error("Stripe Capture Error after successful Quest Order:", captureErr.message);
+            try {
+                await questOrderService.cancelQuestOrder(questRes.questOrderId, questRes.referenceTestId);
+                console.log(`Quest Order ${questRes.questOrderId} cancelled due to Stripe Capture failure.`);
+            } catch (cancelQuestErr) {
+                console.error(`CRITICAL: Failed to cancel Quest order ${questRes.questOrderId} after Stripe capture failed!`, cancelQuestErr.message);
+            }
+            return next(new AppError(`Payment Capture failed: ${captureErr.message}`, 402));
+        }
     }
 
     // 10. Persist internal Order record
@@ -407,6 +433,7 @@ export const createBatchOrder = catchAsync(async (req, res, next) => {
                 currency: "usd",
                 payment_method: paymentMethodId,
                 confirm: true,
+                capture_method: "manual",
                 automatic_payment_methods: {
                     enabled: true,
                     allow_redirects: "never"
@@ -421,7 +448,7 @@ export const createBatchOrder = catchAsync(async (req, res, next) => {
                 paymentIntentOptions.customer = employer.stripeCustomerId;
             }
             paymentIntent = await stripe.paymentIntents.create(paymentIntentOptions);
-            if (paymentIntent.status !== "succeeded") {
+            if (paymentIntent.status !== "succeeded" && paymentIntent.status !== "requires_capture") {
                 return next(new AppError(`Stripe Payment Intent status: ${paymentIntent.status}. Verification failed.`, 402));
             }
         } catch (stripeErr) {
@@ -528,6 +555,40 @@ export const createBatchOrder = catchAsync(async (req, res, next) => {
     console.log(`\n\x1b[33m${'='.repeat(60)}\x1b[0m`);
     console.log(`\x1b[33m  BATCH ORDER COMPLETE — ${createdOrders.length}/${totalEmployees} succeeded\x1b[0m`);
     console.log(`\x1b[33m${'='.repeat(60)}\x1b[0m\n`);
+
+    if (paymentIntent && paymentIntent.id && paymentIntent.status === "requires_capture" && paymentMethodId !== "pm_bypass_test") {
+        if (createdOrders.length === 0) {
+            try {
+                await stripe.paymentIntents.cancel(paymentIntent.id);
+                console.log(`Stripe Authorization Cancelled for batch payment intent ${paymentIntent.id} because all orders failed.`);
+            } catch (cancelErr) {
+                console.error(`Failed to cancel Stripe authorization: ${cancelErr.message}`);
+            }
+            return next(new AppError("All orders in the batch failed to process with Quest API. No charges were made.", 502));
+        } else {
+            try {
+                const amountToCapture = createdOrders.length * singleAmountInCents;
+                await stripe.paymentIntents.capture(paymentIntent.id, {
+                    amount_to_capture: amountToCapture
+                });
+                console.log(`Stripe Charge Captured for batch payment intent ${paymentIntent.id}. Amount: $${(amountToCapture / 100).toFixed(2)}`);
+            } catch (captureErr) {
+                console.error("Stripe Capture Error for Batch Order:", captureErr.message);
+                // We must cancel all successfully created Quest orders if capture fails!
+                for (const order of createdOrders) {
+                    try {
+                        await questOrderService.cancelQuestOrder(order.questOrderId, order.referenceTestId);
+                        console.log(`Rollback: Cancelled Quest Order ${order.questOrderId} due to batch payment capture failure.`);
+                    } catch (rollbackErr) {
+                        console.error(`CRITICAL: Failed to rollback Quest order ${order.questOrderId}!`, rollbackErr.message);
+                    }
+                }
+                return next(new AppError(`Batch Payment Capture failed: ${captureErr.message}. All orders rolled back.`, 402));
+            }
+        }
+    } else if (createdOrders.length === 0 && paymentMethodId === "pm_bypass_test") {
+        return next(new AppError("All orders in the batch failed to process with Quest API.", 502));
+    }
 
     res.status(201).json({
         success: true,

@@ -201,15 +201,30 @@ class QuestOrderService {
 
       const createRes = soapBody?.["CreateOrderResponse"]?.[0]?.["CreateOrderResult"]?.[0];
       const innerData = await parseStringPromise(createRes);
-      const orderResult = innerData?.OrderResult || {};
+      
+      const methodResponse = innerData?.QuestMethodResponse || innerData?.OrderResult || {};
 
-      if (orderResult.Status?.[0] === "Error") {
-        throw new Error(orderResult.ErrorDetail?.[0] || "Quest returned an order creation error.");
+      if (methodResponse.ResponseStatusID?.[0] === "FAILURE" || methodResponse.Status?.[0] === "Error") {
+        let errorMsg = "Quest returned an order creation error.";
+        if (methodResponse.Errors?.[0]?.Error) {
+           const errs = methodResponse.Errors[0].Error.map(e => e.ErrorDetail?.[0]).filter(Boolean);
+           if (errs.length) errorMsg = errs.join(" | ");
+        } else if (methodResponse.ErrorDetail?.[0]) {
+           errorMsg = methodResponse.ErrorDetail[0];
+        }
+        throw new Error(errorMsg);
+      }
+      
+      const questOrderId = methodResponse.QuestOrderID?.[0];
+      const referenceTestId = methodResponse.ReferenceTestID?.[0];
+
+      if (!questOrderId || !referenceTestId || typeof questOrderId !== 'string' || questOrderId.trim() === '') {
+         throw new Error("Quest failed to return a valid QuestOrderID or ReferenceTestID.");
       }
 
       return {
-        questOrderId: orderResult.QuestOrderID?.[0] || `Q-${Math.floor(100000 + Math.random() * 900000)}`,
-        referenceTestId: orderResult.ReferenceTestID?.[0] || `REF-${Math.floor(1000000 + Math.random() * 9000000)}`,
+        questOrderId,
+        referenceTestId,
         status: "ordered",
         requestXml: bodyXml,
         responseXml: soapRes.xml
