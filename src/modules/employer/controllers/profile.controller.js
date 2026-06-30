@@ -10,11 +10,28 @@ export const getEmployerProfile = catchAsync(async (req, res, next) => {
 
 
 export const updateEmployerProfile = catchAsync(async (req, res, next) => {
-    const { first_name, last_name, phone, company_name, address, title } = req.body;
+    const { 
+        first_name, last_name, phone, company_name, address, title, timezone, language,
+        legal_name, dba_name, industry, founded_year, employee_count, dot_number, usdot, mc_mx_number, contact_phone, contact_email, public_industry,
+        hq_street, hq_suite, hq_city, hq_state, hq_zip, same_as_hq, mail_street, mail_suite, mail_city, mail_state, mail_zip
+    } = req.body;
+
+    const updateFields = { 
+        first_name, last_name, phone, company_name, address, title, timezone, language,
+        legal_name, dba_name, industry, founded_year, employee_count, dot_number, usdot, mc_mx_number, contact_phone, contact_email, public_industry,
+        hq_street, hq_suite, hq_city, hq_state, hq_zip, same_as_hq, mail_street, mail_suite, mail_city, mail_state, mail_zip
+    };
+
+    // Remove undefined fields so we only update what was actually provided
+    Object.keys(updateFields).forEach(key => {
+        if (updateFields[key] === undefined) {
+            delete updateFields[key];
+        }
+    });
 
     const updatedUser = await Employer.findByIdAndUpdate(
         req.user._id,
-        { first_name, last_name, phone, company_name, address, title },
+        updateFields,
         { new: true, runValidators: true }
     );
 

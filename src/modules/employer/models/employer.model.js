@@ -1,6 +1,18 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
+const locationSchema = new mongoose.Schema({
+    location_name: { type: String, required: true },
+    is_headquarters: { type: Boolean, default: false },
+    street_address: { type: String, required: true },
+    city: { type: String, required: true },
+    state: { type: String, required: true },
+    zip: { type: String, required: true },
+    local_contact_name: { type: String, default: "" },
+    local_contact_phone: { type: String, default: "" },
+    local_contact_email: { type: String, default: "" },
+});
+
 const employerSchema = new mongoose.Schema(
     {
         first_name: {
@@ -62,6 +74,94 @@ const employerSchema = new mongoose.Schema(
             },
         },
         address: String,
+        timezone: {
+            type: String,
+            default: "UTC+05:30 — India (IST)",
+        },
+        language: {
+            type: String,
+            default: "English (US)",
+        },
+        legal_name: {
+            type: String,
+            default: "",
+        },
+        dba_name: {
+            type: String,
+            default: "",
+        },
+        industry: {
+            type: String,
+            default: "",
+        },
+        founded_year: {
+            type: String,
+            default: "",
+        },
+        usdot: {
+            type: String,
+            default: "",
+        },
+        mc_mx_number: {
+            type: String,
+            default: "",
+        },
+        contact_phone: {
+            type: String,
+            default: "",
+        },
+        contact_email: {
+            type: String,
+            default: "",
+        },
+        public_industry: {
+            type: String,
+            default: "",
+        },
+        hq_street: {
+            type: String,
+            default: "",
+        },
+        hq_suite: {
+            type: String,
+            default: "",
+        },
+        hq_city: {
+            type: String,
+            default: "",
+        },
+        hq_state: {
+            type: String,
+            default: "",
+        },
+        hq_zip: {
+            type: String,
+            default: "",
+        },
+        same_as_hq: {
+            type: Boolean,
+            default: true,
+        },
+        mail_street: {
+            type: String,
+            default: "",
+        },
+        mail_suite: {
+            type: String,
+            default: "",
+        },
+        mail_city: {
+            type: String,
+            default: "",
+        },
+        mail_state: {
+            type: String,
+            default: "",
+        },
+        mail_zip: {
+            type: String,
+            default: "",
+        },
         labAccountDOT: {
             type: String,
             trim: true,
@@ -70,6 +170,7 @@ const employerSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        locations: [locationSchema],
         // Audit and Stats fields
         last_modified_by: {
             type: mongoose.Schema.Types.ObjectId,
