@@ -767,6 +767,14 @@ export const deleteOrder = catchAsync(async (req, res, next) => {
         return next(new AppError("Unauthorized access to modify this order.", 403));
     }
 
+    // If order has a Quest ID and is not already cancelled, void it at Quest first
+    if (order.questOrderId && order.status !== "cancelled") {
+        const cancelRes = await questOrderService.cancelQuestOrder(order.questOrderId, order.referenceTestId);
+        if (!cancelRes.success) {
+            return next(new AppError("Quest Diagnostics SOAP void request failed.", 502));
+        }
+    }
+
     // Delete order from MongoDB
     await Order.findByIdAndDelete(orderId);
 

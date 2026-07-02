@@ -4,6 +4,7 @@ import Session from "../../../shared/models/session.model.js";
 import LoginHistory from "../../../shared/models/loginHistory.model.js";
 import { parseUserAgent, getIpLocation } from "../../../utils/security.util.js";
 import Employer from "../models/employer.model.js";
+import { logEmployerAudit } from "../utils/auditLogger.js";
 
 // @desc    Employer Signup
 // @route   POST /api/v1/employer/auth/signup
@@ -60,6 +61,15 @@ export const login = catchAsync(async (req, res, next) => {
             ip: clientIp,
             location,
             status: 'Success'
+        });
+
+        // Log successful login to Audit Log
+        await logEmployerAudit({
+            employerId: result.user.id,
+            actionType: "LOGIN.SUCCESS",
+            targetEntityId: result.user.id,
+            targetEntityType: "Employer",
+            details: { email, device, ip: clientIp, location }
         });
 
         res.status(200).json({
@@ -205,6 +215,16 @@ export const changePassword = catchAsync(async (req, res, next) => {
         "employer",
         req.body
     );
+
+    // Log Password Change to Audit Log
+    await logEmployerAudit({
+        req,
+        employerId: req.user._id,
+        actionType: "PASSWORD.CHANGED",
+        targetEntityId: req.user._id,
+        targetEntityType: "Profile",
+        details: { message: "Password updated successfully" }
+    });
 
     res.status(200).json({
         success: true,

@@ -86,6 +86,34 @@ const employerSchema = new mongoose.Schema(
             type: String,
             default: "",
         },
+        legalEntityName: {
+            type: String,
+            default: "",
+        },
+        taxIdType: {
+            type: String,
+            enum: ["EIN", "SSN"],
+            default: "EIN",
+        },
+        taxId: {
+            type: String,
+            default: "",
+        },
+        termsAccepted: {
+            type: Boolean,
+            default: false,
+        },
+        termsAcceptedAt: {
+            type: Date,
+        },
+        w9FileUrl: {
+            type: String,
+            default: "",
+        },
+        w9FileName: {
+            type: String,
+            default: "",
+        },
         dba_name: {
             type: String,
             default: "",
@@ -162,6 +190,27 @@ const employerSchema = new mongoose.Schema(
             type: String,
             default: "",
         },
+        derFullName: { type: String, default: "" },
+        derTitle: { type: String, default: "" },
+        derEmail: { type: String, default: "" },
+        derPhone: { type: String, default: "" },
+        mroName: { type: String, default: "" },
+        mroPhone: { type: String, default: "" },
+        mroEmail: { type: String, default: "" },
+        mroAddress: { type: String, default: "" },
+        consortiumProvider: { type: String, default: "" },
+        consortiumMemberId: { type: String, default: "" },
+        consortiumRandomRate: { type: String, default: "" },
+        certifyCompliance: { type: Boolean, default: false },
+        policyFileName: { type: String, default: "" },
+        policyFileUrl: { type: String, default: "" },
+        primaryColor: { type: String, default: "#8C3BFF" },
+        accentColor: { type: String, default: "#112233" },
+        footerText: { type: String, default: "" },
+        showLogoOnPassport: { type: Boolean, default: true },
+        replacesDefaultMark: { type: Boolean, default: false },
+        companyLogoUrl: { type: String, default: "" },
+        companyLogoName: { type: String, default: "" },
         labAccountDOT: {
             type: String,
             trim: true,
@@ -170,6 +219,46 @@ const employerSchema = new mongoose.Schema(
             type: String,
             trim: true,
         },
+        labAccountQuest: {
+            type: String,
+            trim: true,
+            default: ""
+        },
+        labAccountLabcorp: {
+            type: String,
+            trim: true,
+            default: ""
+        },
+        labAccountEscreen: {
+            type: String,
+            trim: true,
+            default: ""
+        },
+        labAccountCrl: {
+            type: String,
+            trim: true,
+            default: ""
+        },
+        labLinkedQuest: {
+            type: Boolean,
+            default: false
+        },
+        labLinkedLabcorp: {
+            type: Boolean,
+            default: false
+        },
+        labLinkedEscreen: {
+            type: Boolean,
+            default: false
+        },
+        labLinkedCrl: {
+            type: Boolean,
+            default: false
+        },
+        labLinkedDateQuest: Date,
+        labLinkedDateLabcorp: Date,
+        labLinkedDateEscreen: Date,
+        labLinkedDateCrl: Date,
         locations: [locationSchema],
         // Audit and Stats fields
         last_modified_by: {

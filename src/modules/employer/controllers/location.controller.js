@@ -1,6 +1,7 @@
 import Employer from "../models/employer.model.js";
 import catchAsync from "../../../utils/catchAsync.js";
 import AppError from "../../../utils/appError.js";
+import { logEmployerAudit } from "../utils/auditLogger.js";
 
 // @desc    Add a new location/branch
 // @route   POST /api/v1/employer/locations
@@ -42,6 +43,16 @@ export const addLocation = catchAsync(async (req, res, next) => {
     employer.locations.push(newLoc);
     await employer.save();
 
+    // Log Location Creation
+    await logEmployerAudit({
+        req,
+        employerId: req.user._id,
+        actionType: "LOCATION.CREATED",
+        targetEntityId: newLoc.location_name,
+        targetEntityType: "Location",
+        details: newLoc
+    });
+
     res.status(201).json({
         success: true,
         data: employer
@@ -74,6 +85,29 @@ export const updateLocation = catchAsync(async (req, res, next) => {
         local_contact_email
     } = req.body;
 
+    const changedFields = [];
+    const oldValues = {};
+    const newValues = {};
+
+    const fieldsToCheck = [
+        "location_name", "is_headquarters", "street_address", 
+        "city", "state", "zip", 
+        "local_contact_name", "local_contact_phone", "local_contact_email"
+    ];
+
+    fieldsToCheck.forEach(key => {
+        if (req.body[key] !== undefined) {
+            const oldValue = loc[key] !== undefined ? String(loc[key]) : "";
+            const newValue = String(req.body[key]);
+            
+            if (oldValue !== newValue) {
+                changedFields.push(key);
+                oldValues[key] = loc[key] !== undefined ? loc[key] : "";
+                newValues[key] = req.body[key];
+            }
+        }
+    });
+
     if (location_name !== undefined) loc.location_name = location_name;
     if (is_headquarters !== undefined) loc.is_headquarters = !!is_headquarters;
     if (street_address !== undefined) loc.street_address = street_address;
@@ -85,6 +119,18 @@ export const updateLocation = catchAsync(async (req, res, next) => {
     if (local_contact_email !== undefined) loc.local_contact_email = local_contact_email;
 
     await employer.save();
+
+    // Log Location Update if there are actual changes
+    if (changedFields.length > 0) {
+        await logEmployerAudit({
+            req,
+            employerId: req.user._id,
+            actionType: "LOCATION.UPDATED",
+            targetEntityId: loc.location_name,
+            targetEntityType: "Location",
+            details: { fields: changedFields, old: oldValues, new: newValues }
+        });
+    }
 
     res.status(200).json({
         success: true,
@@ -111,6 +157,15 @@ export const deleteLocation = catchAsync(async (req, res, next) => {
 
     employer.locations.splice(locIndex, 1);
     await employer.save();
+
+    // Log Location Deletion
+    await logEmployerAudit({
+        req,
+        employerId: req.user._id,
+        actionType: "LOCATION.DELETED",
+        targetEntityId: req.params.locationId,
+        targetEntityType: "Location"
+    });
 
     res.status(200).json({
         success: true,

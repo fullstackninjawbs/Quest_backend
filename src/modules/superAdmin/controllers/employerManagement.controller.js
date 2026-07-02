@@ -37,7 +37,16 @@ export const updateEmployerProfile = catchAsync(async (req, res, next) => {
     const allowedFields = [
         "company_name", "phone", "address", "business_type", "dot_number", "title", "labAccountDOT", "labAccountNonDOT", "timezone", "language",
         "legal_name", "dba_name", "industry", "founded_year", "employee_count", "usdot", "mc_mx_number", "contact_phone", "contact_email", "public_industry",
-        "hq_street", "hq_suite", "hq_city", "hq_state", "hq_zip", "same_as_hq", "mail_street", "mail_suite", "mail_city", "mail_state", "mail_zip"
+        "hq_street", "hq_suite", "hq_city", "hq_state", "hq_zip", "same_as_hq", "mail_street", "mail_suite", "mail_city", "mail_state", "mail_zip",
+        "legalEntityName", "taxIdType", "taxId", "termsAccepted", "termsAcceptedAt", "w9FileUrl", "w9FileName",
+        "labAccountQuest", "labAccountLabcorp", "labAccountEscreen", "labAccountCrl",
+        "labLinkedQuest", "labLinkedLabcorp", "labLinkedEscreen", "labLinkedCrl",
+        "labLinkedDateQuest", "labLinkedDateLabcorp", "labLinkedDateEscreen", "labLinkedDateCrl",
+        "derFullName", "derTitle", "derEmail", "derPhone",
+        "mroName", "mroPhone", "mroEmail", "mroAddress",
+        "consortiumProvider", "consortiumMemberId", "consortiumRandomRate",
+        "certifyCompliance", "policyFileName", "policyFileUrl",
+        "primaryColor", "accentColor", "footerText", "showLogoOnPassport", "replacesDefaultMark", "companyLogoUrl", "companyLogoName"
     ];
     const oldData = {};
     const newData = {};
